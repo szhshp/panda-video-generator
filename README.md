@@ -42,24 +42,30 @@ Panda Video Generator `熊猫视频自动化引擎`
 
 ## ❇️ 功能演示1 - Agent 使用演示
 
-> 用 AI 的方式一人运营十个自媒体账号
+> 《用 AI 的方式一人运营十个自媒体账号》
 
 
-[![使用演示 · 点击在 bilibili 播放](./docs/assets/3.png)](https://www.bilibili.com/video/BV1WXDABGEB7/?vd_source=a7353d3395fdf5c1b78e0a2367800f20)
+<a href="https://www.bilibili.com/video/BV1WXDABGEB7/?vd_source=a7353d3395fdf5c1b78e0a2367800f20">
+  <img src="./docs/assets/3.png" alt="使用演示 · 点击在 bilibili 播放" width="640" />
+</a>
 
 
-## ❇️ 功能演示2 - 网页向导
+## ❇️ 功能演示2 - 网页自动化向导
 
-> 用程序员的方式一人运营十个自媒体账号
+> 《用程序员的方式一人运营十个自媒体账号》
 
-[![使用演示 · 点击在 bilibili 播放](./docs/assets/2.png)](https://www.bilibili.com/video/BV141XfB3ELj/?vd_source=a7353d3395fdf5c1b78e0a2367800f20)
+<a href="https://www.bilibili.com/video/BV141XfB3ELj/?vd_source=a7353d3395fdf5c1b78e0a2367800f20">
+  <img src="./docs/assets/2.png" alt="使用演示 · 点击在 bilibili 播放" width="640" />
+</a>
 
 
 ## 🎉 产品展示
 
 > 点击图片可在新窗口播放.
 
-[![成品展示 · 点击在 bilibili 播放](./docs/assets/1.png)](https://www.bilibili.com/video/BV19Rw9zwEd4/)
+<a href="https://www.bilibili.com/video/BV19Rw9zwEd4/">
+  <img src="./docs/assets/1.png" alt="成品展示 · 点击在 bilibili 播放" width="640" />
+</a>
 
 
 ## 📅 更新日志
