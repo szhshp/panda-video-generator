@@ -3,8 +3,11 @@
  */
 import fs from "node:fs";
 import path from "node:path";
+import dotenv from "dotenv";
 import { projectRoot } from "./lib/project-root.mjs";
 import { hasFfmpeg, run } from "./lib/run-cmd.mjs";
+
+dotenv.config({ path: path.join(projectRoot, ".env") });
 
 const BLUE = "\x1b[0;34m";
 const GREEN = "\x1b[0;32m";

@@ -89,8 +89,8 @@ export const REMOTION_PATHS = {
   SPIDER_CAPTIONS_VTT: 'spider/captions.vtt',
   /** Title + optional `slides` for `PPT-Deck`; same file other comps use for `title`. */
   VIDEO_TITLE_JSON: 'video/title.json',
-  /** Full-frame slide background for `PPT-Deck` (under slide text, above outer fill). */
-  PPT_DECK_BG: 'image/ppt-bg.png',
+  /** Tracked slide backdrop for `PPT-Deck`; optional `image/ppt-bg/*.png` (except `0.png`) stay local-only. */
+  PPT_DECK_BG: 'image/ppt-bg/0.png',
   /** Corner mark in `PPT-Deck` (same asset as `Logo` composition). */
   TRADEMARK_LOGO: 'logo/logo.png',
   AUDIO_INTRO: 'audio/intro.mp3',

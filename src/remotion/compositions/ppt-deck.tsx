@@ -48,6 +48,8 @@ loadFont({
 
 const BGM_STATIC = "bgm/0.mp3";
 
+// Slide backdrop is `public/image/ppt-bg/0.png`. Optional: `pnpm shuffle:ppt-bg` before render.
+
 const pptDeckBgStyle: React.CSSProperties = {
   width: "100%",
   height: "100%",
@@ -58,6 +60,7 @@ const PptSlideBackground: React.FC = () => (
   <Img
     src={staticFile(REMOTION_PATHS.PPT_DECK_BG)}
     style={pptDeckBgStyle}
+    alt=""
   />
 );
 

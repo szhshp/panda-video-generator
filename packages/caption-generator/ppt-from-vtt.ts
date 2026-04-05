@@ -152,6 +152,11 @@ const VTT_SLIDES_SYSTEM = `You output only valid JSON. No markdown fences, no ex
 
 Input: WebVTT cues (time-coded dialogue). Your job is **not** to subtitle that dialogue. Build **deck titles**: high-level **labels** a producer would put in a **talk outline** — same language, same facts and intent, **no new invented claims**.
 
+**title and subtitle (the video cover / deck header):**
+- If the user message includes an **existing title** (non-empty), your JSON **"title"** MUST keep the **same subject and thesis** as that string. **Do not** reframe, rename the topic, or invent a new theme (e.g. do not turn a question about “大脑是否萎缩” into a different headline such as “精神健康风险概览”). Allowed edits only: **shorten** length, **tighten** wording, light **hook** for attention (吸睛: e.g. contrast, punctuation, one sharp fragment) — **same meaning**, same referent.
+- **"subtitle"**: same rule when an existing subtitle is given — **polish in place** or shorten; may use "" if truly unnecessary. If no existing subtitle was given, you may output a **short** optional subtitle aligned with the same topic, or "".
+- If the user says there is **no** existing title, then derive **one** short hook title from the cues only (still factual, no clickbait lies).
+
 De-couple from the transcript (strict):
 - **Never** reuse cue lines or long fragments. Do **not** copy sentence rhythm, connective words, or list order from cues.
 - For Chinese: avoid any substring of **5+ consecutive characters** that appears **verbatim** in any cue (except proper nouns, numbers, or fixed terms). Rewrite with **different vocabulary** (synonyms, shorter compounds, category names).
@@ -175,7 +180,38 @@ slideStartSec (required): same length as slides. slideStartSec[i] = seconds from
 
 Formatting: join lines with " <br> " only (title line then ≥2 sub lines); no markdown fences.`;
 
-async function slideDeckFromVttWithLlm(vttText: string): Promise<SlideDeck> {
+type ExistingDeckMeta = { title?: string; subtitle?: string };
+
+async function loadExistingDeckMeta(
+  outPath: string,
+  cwd: string,
+): Promise<ExistingDeckMeta> {
+  const pub = await readTitleRecord(outPath);
+  let title = typeof pub.title === 'string' ? pub.title.trim() : '';
+  let subtitle = typeof pub.subtitle === 'string' ? pub.subtitle.trim() : '';
+  if (!title) {
+    const spiderDir = resolve(
+      cwd,
+      process.env.SPIDER_OUTPUT_DIR?.trim() || 'output/spider',
+    );
+    const sp = await readTitleRecord(resolve(spiderDir, 'title.json'));
+    if (typeof sp.title === 'string' && sp.title.trim()) {
+      title = sp.title.trim();
+    }
+    if (!subtitle && typeof sp.subtitle === 'string' && sp.subtitle.trim()) {
+      subtitle = sp.subtitle.trim();
+    }
+  }
+  return {
+    ...(title ? { title } : {}),
+    ...(subtitle ? { subtitle } : {}),
+  };
+}
+
+async function slideDeckFromVttWithLlm(
+  vttText: string,
+  existingMeta: ExistingDeckMeta,
+): Promise<SlideDeck> {
   const cues = parseWebVttCues(vttText);
   if (cues.length === 0) {
     throw new Error('No cues in WebVTT');
@@ -188,11 +224,18 @@ async function slideDeckFromVttWithLlm(vttText: string): Promise<SlideDeck> {
     })
     .join('\n\n');
 
+  const existingTitle = existingMeta.title?.trim() ?? '';
+  const existingSubtitle = existingMeta.subtitle?.trim() ?? '';
+  const metaBlock =
+    existingTitle.length > 0
+      ? `Existing deck metadata (same topic — shorten / 吸睛 only; do not change angle):\n- title: ${existingTitle}\n- subtitle: ${existingSubtitle || '(empty)'}\n\n`
+      : 'Existing deck metadata: **no title** — derive one short hook title from cues only (factual).\n\n';
+
   const llm = getCaptionLlmConfig();
   const raw = await completeChatText({
     llm,
     system: VTT_SLIDES_SYSTEM,
-    user: `WebVTT cues:\n\n${block}\n\nFinal check: each slide has "# " title plus **at least two** " <br> " sub lines (outline bullets only); no subtitle-only slides; paraphrase so lines would not match cue text in a long-substring search (except proper nouns / numbers).`,
+    user: `${metaBlock}WebVTT cues:\n\n${block}\n\nFinal check: each slide has "# " title plus **at least two** " <br> " sub lines (outline bullets only); no subtitle-only slides; paraphrase so lines would not match cue text in a long-substring search (except proper nouns / numbers). JSON "title"/"subtitle" must follow the title/subtitle rules above.`,
     taskLabel: 'PPT slides from VTT',
   });
   if (raw == null) {
@@ -306,9 +349,11 @@ async function main(): Promise<void> {
   }
   const titleHint = argValue('--title')?.trim();
 
+  const existingMeta = await loadExistingDeckMeta(outPath, cwd);
+
   const deck = hasFlag('--no-llm')
     ? slideDeckHeuristic(vttText, titleHint)
-    : await slideDeckFromVttWithLlm(vttText);
+    : await slideDeckFromVttWithLlm(vttText, existingMeta);
 
   await mergeTitleJsonWithSlideTiming(outPath, deck, {
     title: titleHint ?? deck.title,
@@ -318,10 +363,10 @@ async function main(): Promise<void> {
   });
   console.log(
     `Updated ${outPath} (slides + narrationVttFile=${narrationVttFile}` +
-      (deck.slideStartSec?.length === deck.slides.length
-        ? ' + slideStartSec[] for VTT sync'
-        : '') +
-      ')',
+    (deck.slideStartSec?.length === deck.slides.length
+      ? ' + slideStartSec[] for VTT sync'
+      : '') +
+    ')',
   );
 }
 

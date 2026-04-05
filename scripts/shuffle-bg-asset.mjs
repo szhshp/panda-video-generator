@@ -2,8 +2,8 @@
  * Cross-platform (Windows / macOS / Linux): pick a random media file in a dir and rename to 0.<ext>.
  * If 0.<ext> exists, rename it to 0-YYYYMMDD-HHMMSS-<pid>.<ext> first.
  *
- * Usage: node scripts/shuffle-bg-asset.mjs <video|bgm>
- * Env: VIDEO_DIR, BGM_DIR — optional; default public/video and public/bgm (relative to repo root).
+ * Usage: node scripts/shuffle-bg-asset.mjs <video|bgm|ppt-bg>
+ * Env: VIDEO_DIR, BGM_DIR, PPT_BG_DIR — optional overrides (relative to repo root if not absolute).
  */
 
 import fs from "node:fs";
@@ -48,20 +48,42 @@ function listFilesWithExt(dir, ext) {
     .map((e) => path.join(dir, e.name));
 }
 
+const KINDS = {
+  video: {
+    dirEnv: "VIDEO_DIR",
+    defaultRel: "public/video",
+    ext: "mp4",
+    emoji: "🎬",
+    label: "shuffle-bg-videos",
+  },
+  bgm: {
+    dirEnv: "BGM_DIR",
+    defaultRel: "public/bgm",
+    ext: "mp3",
+    emoji: "🎵",
+    label: "shuffle-bgm",
+  },
+  "ppt-bg": {
+    dirEnv: "PPT_BG_DIR",
+    defaultRel: "public/image/ppt-bg",
+    ext: "png",
+    emoji: "🖼️",
+    label: "shuffle-ppt-bg",
+  },
+};
+
 function main() {
   const kind = process.argv[2];
-  if (kind !== "video" && kind !== "bgm") {
-    console.error("Usage: node scripts/shuffle-bg-asset.mjs <video|bgm>");
+  const spec = KINDS[/** @type {keyof typeof KINDS} */ (kind)];
+  if (!spec) {
+    console.error("Usage: node scripts/shuffle-bg-asset.mjs <video|bgm|ppt-bg>");
     process.exit(1);
   }
 
-  const isVideo = kind === "video";
-  const dir = isVideo
-    ? resolveDir("VIDEO_DIR", "public/video")
-    : resolveDir("BGM_DIR", "public/bgm");
-  const ext = isVideo ? "mp4" : "mp3";
-  const emoji = isVideo ? "🎬" : "🎵";
-  const label = isVideo ? "shuffle-bg-videos" : "shuffle-bgm";
+  const dir = resolveDir(spec.dirEnv, spec.defaultRel);
+  const ext = spec.ext;
+  const emoji = spec.emoji;
+  const label = spec.label;
 
   fs.mkdirSync(dir, { recursive: true });
 

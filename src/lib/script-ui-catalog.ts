@@ -44,7 +44,7 @@ export const SCRIPT_GROUP_ORDER: ScriptGroupSpec[] = [
   {
     id: "assets",
     label: "素材洗牌",
-    scripts: ["shuffle:bg-video", "shuffle:bgm", "shuffle:all"],
+    scripts: ["shuffle:bg-video", "shuffle:bgm", "shuffle:ppt-bg", "shuffle:all"],
   },
   {
     id: "remotion",
@@ -98,7 +98,8 @@ export const SCRIPT_LABEL_ZH: Partial<Record<string, string>> = {
   "caption:env": "生成字幕环境（caption CLI）",
   "shuffle:bg-video": "随机 bg 视频",
   "shuffle:bgm": "随机 BGM",
-  "shuffle:all": "同时洗牌视频与 BGM",
+  "shuffle:ppt-bg": "随机 PPT 背景图（0.png）",
+  "shuffle:all": "同时洗牌视频、BGM 与 PPT 背景",
   remotion: "Remotion Studio",
   "remotion:deploy": "Lambda 部署脚本",
   start: "Next 生产启动",
