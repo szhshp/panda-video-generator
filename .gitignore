@@ -61,6 +61,7 @@ public/audio/*
 !public/audio/intro.mp3
 !public/audio/intro_typewriter.mp3
 public/image/*
+!public/image/ppt-bg.png
 
 # spider output files
 output/spider/
@@ -79,3 +80,6 @@ output/tts/*.vtt
 
 # local archive (moved from working tree, not deleted)
 /del/
+promotion-channels-checklist.md
+prompt.md
+.agent/rules/env-file.md

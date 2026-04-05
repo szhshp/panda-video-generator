@@ -1,10 +1,7 @@
 import React, { type CSSProperties } from 'react';
-import { loadFont as loadInterFont, fontFamily } from '@remotion/google-fonts/Inter';
+import { REMOTION_SANS_FONT_FAMILY } from '../sans-font-family';
 
-loadInterFont('normal', {
-	subsets: ['latin'],
-	weights: ['400', '700'],
-});
+const fontFamily = REMOTION_SANS_FONT_FAMILY;
 
 /** GitHub mark only (official path); inherits `color` via currentColor. */
 const GitHubMark: React.FC<{ size: number }> = ({ size }) => (

@@ -17,7 +17,7 @@ export interface CoverProps {
 	contentTitle?: string;
 }
 
-export const Cover: React.FC<CoverProps> = ({ title: _title, contentTitle }) => {
+export const Cover: React.FC<CoverProps> = ({ contentTitle }) => {
 	const { width, height } = useVideoConfig();
 	const [jsonTitle, setJsonTitle] = useState<string | null>(null);
 	const [titleLoaded, setTitleLoaded] = useState(false);

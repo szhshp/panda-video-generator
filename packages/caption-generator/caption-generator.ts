@@ -1,8 +1,12 @@
-import OpenAI from 'openai';
 import { dirname } from 'path';
 import { promises as fs } from 'fs';
 import { getTtsInputFile } from './paths';
-import { getCaptionLlmConfig, type CaptionLlmConfig } from './llm-config';
+import {
+  captionLlmProviderLabel,
+  getCaptionLlmConfig,
+  type CaptionLlmConfig,
+} from './llm-config';
+import { completeChatText } from './llm-chat';
 import {
   buildVideoScriptUserPrompt,
   VIDEO_SCRIPT_SYSTEM_PROMPT,
@@ -31,10 +35,6 @@ function normalizePayload(
   };
 }
 
-function providerLabel(cfg: CaptionLlmConfig): string {
-  return cfg.id === 'moonshot' ? 'Kimi (Moonshot)' : 'DeepSeek';
-}
-
 /**
  * Call configured LLM (default DeepSeek; optional Kimi via env) and return video script text only (no file I/O).
  */
@@ -61,36 +61,16 @@ export async function generateVideoScriptText(
   const userPrompt = buildVideoScriptUserPrompt(contentForModel);
 
   try {
-    const openai = new OpenAI({
-      baseURL: llm.baseURL,
-      apiKey: llm.apiKey,
+    return await completeChatText({
+      llm,
+      system: VIDEO_SCRIPT_SYSTEM_PROMPT,
+      user: userPrompt,
+      taskLabel: 'video script generation',
+      allowEmpty: true,
     });
-
-    console.log(
-      `\n📝 Sending content to ${providerLabel(llm)} for video script generation...`,
-    );
-    const completion = await openai.chat.completions.create({
-      model: llm.model,
-      messages: [
-        {
-          role: 'system',
-          content: VIDEO_SCRIPT_SYSTEM_PROMPT,
-        },
-        {
-          role: 'user',
-          content: userPrompt,
-        },
-      ],
-    });
-
-    const scriptText = completion.choices[0]?.message?.content?.trim();
-    if (!scriptText) {
-      return null;
-    }
-    return scriptText;
   } catch (error) {
     console.error(
-      `\n❌ Error generating video script with ${providerLabel(llm)}:`,
+      `\n❌ Error generating video script with ${captionLlmProviderLabel(llm)}:`,
       error,
     );
     if (

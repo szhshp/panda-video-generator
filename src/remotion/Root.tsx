@@ -16,27 +16,43 @@ import { ContentVertical } from "./compositions/ContentVertical";
 import { Video } from "./compositions/Video";
 import { VideoVertical } from "./compositions/VideoVertical";
 import { Cover, CoverProps } from "./compositions/Cover";
+import { PPTDeck } from "./compositions/ppt-deck";
+import {
+  TitleJsonForPptSchema,
+  computePptDurationInFrames,
+  getWebVttDurationSeconds,
+  DEFAULT_PPT_TIMING,
+  type SlideDeck,
+} from "../../types/ppt";
+
+const DEFAULT_SLIDE_DECK: SlideDeck = TitleJsonForPptSchema.parse({
+  title: "示例",
+  subtitle: "在 public/video/title.json 填写 title、subtitle、slides",
+  slides: ["# 第一页 <br> slides 为字符串数组，每页用 <br> 分行"],
+});
+
+/** Avoid stale public/ JSON in Studio after file edits (browser HTTP cache). */
+async function fetchStaticJson(url: string): Promise<unknown> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`fetch ${url}: HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+async function fetchStaticText(url: string): Promise<string> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) {
+    throw new Error(`fetch ${url}: HTTP ${res.status}`);
+  }
+  return res.text();
+}
+
 // Parse VTT file to get the last caption's end time (duration)
 async function getAudioDurationFromVtt(vttFile: string): Promise<number> {
   try {
-    const response = await fetch(staticFile(vttFile));
-    const vttContent = await response.text();
-    const lines = vttContent.split('\n');
-
-    let maxEndMs = 0;
-    for (const line of lines) {
-      const timeMatch = line.match(/(\d{2}):(\d{2}):(\d{2})\.(\d{3})\s+-->\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
-      if (timeMatch) {
-        const endMs =
-          parseInt(timeMatch[5]) * 3600000 +
-          parseInt(timeMatch[6]) * 60000 +
-          parseInt(timeMatch[7]) * 1000 +
-          parseInt(timeMatch[8]);
-        maxEndMs = Math.max(maxEndMs, endMs);
-      }
-    }
-
-    return maxEndMs / 1000; // Convert to seconds
+    const vttContent = await fetchStaticText(staticFile(vttFile));
+    return getWebVttDurationSeconds(vttContent);
   } catch (e) {
     console.error('Failed to parse VTT file for duration:', e);
     return 0;
@@ -54,6 +70,61 @@ export const RemotionRoot: React.FC = () => {
         width={VIDEO_WIDTH}
         height={VIDEO_HEIGHT}
         defaultProps={defaultMyCompProps}
+      />
+      <Composition
+        id="PPT-Deck"
+        component={PPTDeck}
+        calculateMetadata={async ({
+          props,
+        }: {
+          props: {
+            titleJsonFile?: string;
+            deck?: SlideDeck;
+            narrationEndSec?: number;
+            showSlideNarrationTime?: boolean;
+          };
+        }) => {
+          const titleJsonFile =
+            props.titleJsonFile ?? REMOTION_PATHS.VIDEO_TITLE_JSON;
+          const raw = await fetchStaticJson(staticFile(titleJsonFile));
+          const deck = TitleJsonForPptSchema.parse(raw);
+          let narrationEndSec: number | undefined;
+          if (deck.narrationVtt) {
+            narrationEndSec = getWebVttDurationSeconds(deck.narrationVtt);
+          } else if (deck.narrationVttFile) {
+            const vttText = await fetchStaticText(
+              staticFile(deck.narrationVttFile),
+            );
+            narrationEndSec = getWebVttDurationSeconds(vttText);
+          }
+          const durationInFrames = computePptDurationInFrames(
+            deck,
+            VIDEO_FPS,
+            DEFAULT_PPT_TIMING,
+            narrationEndSec,
+          );
+          return {
+            durationInFrames,
+            props: {
+              ...props,
+              deck,
+              titleJsonFile,
+              narrationEndSec:
+                narrationEndSec != null && Number.isFinite(narrationEndSec)
+                  ? narrationEndSec
+                  : undefined,
+            },
+          };
+        }}
+        fps={VIDEO_FPS}
+        width={VIDEO_WIDTH}
+        height={VIDEO_HEIGHT}
+        defaultProps={{
+          titleJsonFile: REMOTION_PATHS.VIDEO_TITLE_JSON,
+          deck: DEFAULT_SLIDE_DECK,
+          narrationEndSec: undefined,
+          showSlideNarrationTime: false,
+        }}
       />
       <Composition
         id="Video"

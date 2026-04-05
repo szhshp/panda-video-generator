@@ -11,6 +11,7 @@ import {
 } from 'remotion';
 import { loadFont } from '@remotion/fonts';
 import { REMOTION_PATHS } from '../../../types/paths';
+import { parseVttToCaptions, type VttCaption } from '../vtt-captions';
 import { WatermarkText } from './WatermarkText';
 
 // Load custom font for captions
@@ -20,70 +21,6 @@ loadFont({
 }).catch((err) => {
 	console.error('Failed to load font:', err);
 });
-
-interface Caption {
-	text: string;
-	startMs: number;
-	endMs: number;
-}
-
-// Parse VTT file
-function parseVtt(vttText: string): Caption[] {
-	const lines = vttText.split('\n');
-	const captions: Caption[] = [];
-	let currentCaption: Partial<Caption> | null = null;
-
-	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i].trim();
-
-		// Skip WEBVTT header and STYLE section
-		if (line === 'WEBVTT' || line.startsWith('STYLE') || line.startsWith('::cue')) {
-			continue;
-		}
-
-		// Match timestamp line: 00:00:00.000 --> 00:00:02.000
-		const timeMatch = line.match(/(\d{2}):(\d{2}):(\d{2})\.(\d{3})\s+-->\s+(\d{2}):(\d{2}):(\d{2})\.(\d{3})/);
-		if (timeMatch) {
-			const startMs =
-				parseInt(timeMatch[1]) * 3600000 +
-				parseInt(timeMatch[2]) * 60000 +
-				parseInt(timeMatch[3]) * 1000 +
-				parseInt(timeMatch[4]);
-			const endMs =
-				parseInt(timeMatch[5]) * 3600000 +
-				parseInt(timeMatch[6]) * 60000 +
-				parseInt(timeMatch[7]) * 1000 +
-				parseInt(timeMatch[8]);
-
-			currentCaption = { startMs, endMs };
-			continue;
-		}
-
-		// If there's a current caption object and this line is text
-		if (currentCaption && line && !line.includes('-->')) {
-			if (currentCaption.text) {
-				currentCaption.text += '\n' + line;
-			} else {
-				currentCaption.text = line;
-			}
-
-			// Check if next line is empty or new timestamp, if so save current caption
-			const nextLine = i + 1 < lines.length ? lines[i + 1].trim() : '';
-			if (!nextLine || nextLine.match(/\d{2}:\d{2}:\d{2}\.\d{3}/)) {
-				if (currentCaption.startMs !== undefined && currentCaption.endMs !== undefined && currentCaption.text) {
-					captions.push({
-						startMs: currentCaption.startMs,
-						endMs: currentCaption.endMs,
-						text: currentCaption.text,
-					});
-					currentCaption = null;
-				}
-			}
-		}
-	}
-
-	return captions;
-}
 
 async function fetchVttText(primaryPath: string, fallbackPath: string): Promise<string> {
 	for (const path of [primaryPath, fallbackPath]) {
@@ -105,37 +42,73 @@ const BGM_STATIC = 'bgm/0.mp3';
 
 interface ContentProps {
 	audioFile?: string;
-	/** On-screen captions; default TTS VTT (aligned with audio). Override e.g. SPIDER_CAPTIONS_VTT for estimate-only preview. */
+	/** On-screen captions; default TTS VTT (aligned with audio). Override e.g. SPIDER_CAPTIONS_VTT for estimate-only preview. Ignored when `captionVttInline` is set. */
 	captionVttFile?: string;
+	/** Raw WebVTT (e.g. from `title.json` `narrationVtt`). When set, no fetch for `captionVttFile`. */
+	captionVttInline?: string;
+	/** When false, omit TTS track (e.g. captions-only overlay on `PPT-Deck`). Default true. */
+	includeTtsAudio?: boolean;
+	/** When false, omit background music. Default true. */
+	includeBgm?: boolean;
+	/** When false, omit bottom watermark. Default true. */
+	includeWatermark?: boolean;
+	/** Caption placement; `PPT-Deck` uses `bottom` so slides stay readable. */
+	captionLayout?: 'center' | 'bottom';
+	/** Multiplier on base caption font size (e.g. 0.52 for smaller `PPT-Deck` burn-in). */
+	captionFontScale?: number;
+	/** Main caption text color (foreground layer). Default white for video-on-dark. */
+	captionFillColor?: string;
+	/** Stroke color for caption outline (`-webkit-text-stroke`). Default black for light text. */
+	captionStrokeColor?: string;
+	/** Max caption box width (px) when `captionLayout` is `bottom`. Default 960. */
+	captionMaxWidthPx?: number;
 }
 
 export const Content: React.FC<ContentProps> = ({
 	audioFile = REMOTION_PATHS.TTS_AUDIO,
 	// TTS WebVTT matches audio.mp3; spider/captions.vtt is estimate-only (see types/paths.ts).
 	captionVttFile = REMOTION_PATHS.TTS_VTT,
+	captionVttInline,
+	includeTtsAudio = true,
+	includeBgm = true,
+	includeWatermark = true,
+	captionLayout = 'center',
+	captionFontScale = 1,
+	captionFillColor = '#FFFFFF',
+	captionStrokeColor = '#000000',
+	captionMaxWidthPx = 960,
 }) => {
 	const frame = useCurrentFrame();
 	const { fps } = useVideoConfig();
-	const [captions, setCaptions] = useState<Caption[]>([]);
+	const [captions, setCaptions] = useState<VttCaption[]>([]);
 	const [vttLoaded, setVttLoaded] = useState(false);
 	const { delayRender, continueRender, cancelRender } = useDelayRender();
 	const [handle] = useState(() => delayRender());
 
 	const fetchAndProcessVtt = useCallback(async () => {
 		try {
+			const inline = captionVttInline?.trim();
+			if (inline) {
+				if (!inline.startsWith('WEBVTT')) {
+					throw new Error('Invalid WebVTT (captionVttInline)');
+				}
+				setCaptions(parseVttToCaptions(inline));
+				setVttLoaded(true);
+				return;
+			}
 			const fallback =
 				captionVttFile === REMOTION_PATHS.TTS_VTT
 					? REMOTION_PATHS.SPIDER_CAPTIONS_VTT
 					: REMOTION_PATHS.TTS_VTT;
 			const vttContent = await fetchVttText(captionVttFile, fallback);
-			const parsedCaptions = parseVtt(vttContent);
+			const parsedCaptions = parseVttToCaptions(vttContent);
 			setCaptions(parsedCaptions);
 			setVttLoaded(true);
 		} catch (e) {
 			console.error('Failed to load VTT file:', e);
 			cancelRender(e);
 		}
-	}, [captionVttFile, cancelRender]);
+	}, [captionVttInline, captionVttFile, cancelRender]);
 
 	useEffect(() => {
 		fetchAndProcessVtt();
@@ -170,7 +143,11 @@ export const Content: React.FC<ContentProps> = ({
 	const bgmBaseVolume = 0.15;
 
 	let bgmVolume = bgmBaseVolume;
-	if (audioEndMs > 0 && currentTimeMs >= fadeOutStartMs) {
+	if (
+		includeBgm &&
+		audioEndMs > 0 &&
+		currentTimeMs >= fadeOutStartMs
+	) {
 		// Fade out from bgmBaseVolume to 0 over fadeOutDurationMs
 		const fadeOutProgress = (currentTimeMs - fadeOutStartMs) / fadeOutDurationMs;
 		bgmVolume = interpolate(
@@ -190,12 +167,12 @@ export const Content: React.FC<ContentProps> = ({
 		const charCount = text.replace(/\s/g, '').length;
 
 		// If more than 50 characters, use smaller font size
-		if (charCount > 50) {
-			return 52;
-		}
-
-		return 80;
+		const base = charCount > 50 ? 52 : 80;
+		return Math.round(base * captionFontScale);
 	};
+
+	const captionBottom = captionLayout === 'bottom';
+	const strokePx = Math.max(2, Math.round(6 * captionFontScale));
 
 	// Dancing lines animation - slow, smooth movement
 	// const lineSpeed = 0.05; // Very slow movement speed
@@ -262,9 +239,9 @@ export const Content: React.FC<ContentProps> = ({
 				extrapolateRight: 'clamp',
 			});
 
-			// Horizontal gather: start from spread out, end at center
-			// Create a gather effect where text comes from both sides to center
-			translateX = interpolate(springProgress, [0, 1], [100, 0], {
+			// Horizontal gather: start from spread out, end at center (tighter on bottom layout)
+			const gatherPx = captionBottom ? 48 : 100;
+			translateX = interpolate(springProgress, [0, 1], [gatherPx, 0], {
 				extrapolateLeft: 'clamp',
 				extrapolateRight: 'clamp',
 			});
@@ -278,21 +255,30 @@ export const Content: React.FC<ContentProps> = ({
 	}
 
 	return (
-		<AbsoluteFill style={{ backgroundColor: 'transparent' }}>
+		<AbsoluteFill
+			style={{
+				backgroundColor: 'transparent',
+				pointerEvents: 'none',
+			}}
+		>
 			{/* Audio track */}
-			<Html5Audio
-				src={staticFile(audioFile)}
-				volume={1}
-				name="TTS Audio"
-			/>
+			{includeTtsAudio ? (
+				<Html5Audio
+					src={staticFile(audioFile)}
+					volume={1}
+					name="TTS Audio"
+				/>
+			) : null}
 
 			{/* Background music */}
-			<Html5Audio
-				src={staticFile(BGM_STATIC)}
-				volume={bgmVolume}
-				loop
-				name="Background Music"
-			/>
+			{includeBgm ? (
+				<Html5Audio
+					src={staticFile(BGM_STATIC)}
+					volume={bgmVolume}
+					loop
+					name="Background Music"
+				/>
+			) : null}
 
 			{/* Dancing lines - slow animated background decoration */}
 			{/* <svg
@@ -352,18 +338,30 @@ export const Content: React.FC<ContentProps> = ({
 				<div
 					style={{
 						position: 'absolute',
-						top: '50%',
-						left: '50%',
-						transform: `translate(calc(-50% + ${translateX}px), -50%) scale(${scale})`,
-						transformOrigin: 'center center',
+						...(captionBottom
+							? {
+								bottom: '6%',
+								left: '50%',
+								transform: `translate(calc(-50% + ${translateX}px), 0) scale(${scale})`,
+								transformOrigin: 'center bottom',
+								width: '88%',
+								maxWidth: captionMaxWidthPx,
+								padding: '10px 28px',
+							}
+							: {
+								top: '50%',
+								left: '50%',
+								transform: `translate(calc(-50% + ${translateX}px), -50%) scale(${scale})`,
+								transformOrigin: 'center center',
+								width: '80%',
+								maxWidth: '80vw',
+								padding: '20px 40px',
+							}),
 						fontSize: calculateCaptionFontSize(currentCaption.text),
 						fontWeight: 'bold',
 						textAlign: 'center',
 						fontFamily: 'dingliesongtypeface',
-						padding: '20px 40px',
 						whiteSpace: 'pre-line',
-						width: '80%',
-						maxWidth: '80vw',
 						zIndex: 10,
 						opacity
 					}}
@@ -383,17 +381,17 @@ export const Content: React.FC<ContentProps> = ({
 								left: 0,
 								width: '100%',
 								color: 'transparent',
-								WebkitTextStroke: '6px #000000',
+								WebkitTextStroke: `${strokePx}px ${captionStrokeColor}`,
 								paintOrder: 'stroke fill',
 							}}
 						>
 							{currentCaption.text}
 						</div>
-						{/* Foreground layer - white text */}
+						{/* Foreground layer - fill color */}
 						<div
 							style={{
 								position: 'relative',
-								color: '#FFFFFF',
+								color: captionFillColor,
 							}}
 						>
 							{currentCaption.text}
@@ -403,7 +401,7 @@ export const Content: React.FC<ContentProps> = ({
 			)}
 
 			{/* Attribution: GitHub + project name, left bottom */}
-			<WatermarkText style="content" />
+			{includeWatermark ? <WatermarkText style="content" /> : null}
 		</AbsoluteFill>
 	);
 };

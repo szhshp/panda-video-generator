@@ -36,6 +36,7 @@ const ALLOWED = new Set([
   "Video-Vertical",
   "Content-Vertical",
   "Cover",
+  "PPT-Deck",
 ]);
 
 function resolvePath(relOrAbs) {
@@ -86,6 +87,7 @@ const renderBase = [
   "exec",
   "remotion",
   "render",
+  "src/remotion/index.ts",
   compositionId,
   OUTPUT_FILE,
   "--codec=h264",

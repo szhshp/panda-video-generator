@@ -107,6 +107,7 @@ pnpm render:all
 | Caption / `CAPTION_*` / DeepSeek | `.agent/skills/caption-generator/SKILL.md` |
 | Edge TTS / `EDGE_TTS_*` | `.agent/skills/tts-node/SKILL.md` |
 | `render:video` / `render:all` / composition | `.agent/skills/remotion-render/SKILL.md` |
+| `PPT-Deck` / `ppt:from-vtt` / `title.json` slides | `.agent/skills/ppt-workflow-zhihu/SKILL.md` |
 
 ---
 

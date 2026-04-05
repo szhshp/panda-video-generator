@@ -10,18 +10,15 @@ import {
   useDelayRender,
   Html5Audio,
 } from "remotion";
-import { CompositionProps, defaultMyCompProps } from "../../../types/constants";
+import { CompositionProps } from "../../../types/constants";
 import { REMOTION_PATHS } from "../../../types/paths";
 import { Logo } from "./Logo";
-import { loadFont as loadInterFont, fontFamily } from "@remotion/google-fonts/Inter";
 import { loadFont } from "@remotion/fonts";
 import { Rings } from "./Rings";
 import { useState, useEffect, useCallback } from "react";
+import { REMOTION_SANS_FONT_FAMILY } from "../sans-font-family";
 
-loadInterFont("normal", {
-  subsets: ["latin"],
-  weights: ["400", "700"],
-});
+const fontFamily = REMOTION_SANS_FONT_FAMILY;
 
 // Load custom font for first title
 loadFont({

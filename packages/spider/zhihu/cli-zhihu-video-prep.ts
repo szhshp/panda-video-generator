@@ -7,6 +7,7 @@
 
 import { ZhihuSpider } from './zhihu-question-spider';
 import { generateVideoScript } from '@panda-video-generator/caption-generator';
+import { scriptToEstimatedWebVtt } from '@panda-video-generator/caption-generator/webvtt';
 import { promises as fs } from 'fs';
 import { resolve } from 'path';
 import { getTtsInputFile } from '@panda-video-generator/caption-generator/paths';
@@ -68,6 +69,23 @@ async function main() {
     if (data.title && (data.content || data.answers.length > 0)) {
       try {
         await generateVideoScript(data);
+        try {
+          const scriptPath = resolve(process.cwd(), getTtsInputFile());
+          const scriptText = await fs.readFile(scriptPath, 'utf-8');
+          const captionsPath = resolve(
+            process.cwd(),
+            spiderOutDir,
+            'captions.vtt',
+          );
+          await fs.writeFile(
+            captionsPath,
+            scriptToEstimatedWebVtt(scriptText),
+            'utf-8',
+          );
+          console.log(`\n📼 已根据当前口播稿生成估计字幕: ${captionsPath}`);
+        } catch (vttErr) {
+          console.warn('⚠️  未能写入 captions.vtt（可与口播稿不一致）:', vttErr);
+        }
       } catch (error) {
         console.error('⚠️  口播稿生成失败（抓取已成功）');
         console.error(error);
@@ -83,7 +101,7 @@ async function main() {
         await fs.writeFile(
           titleJsonPath,
           JSON.stringify({ title: data.title }, null, 2),
-          'utf-8'
+          'utf-8',
         );
         console.log(`\n📄 已导出标题 JSON: ${titleJsonPath}`);
         console.log(`   标题: ${data.title}`);

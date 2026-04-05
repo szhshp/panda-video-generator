@@ -1,6 +1,6 @@
 {
   "name": "panda-video-generator",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "private": true,
   "packageManager": "pnpm@10.32.1",
   "engines": {
@@ -72,7 +72,7 @@
     "install:project": "node scripts/run-install.mjs",
     "postinstall": "node scripts/playwright-postinstall.mjs && node scripts/puppeteer-postinstall.mjs",
     "remotion": "remotion studio",
-    "render": "remotion render",
+    "render": "remotion render src/remotion/index.ts",
     "tts": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts node scripts/run-tts.mjs",
     "render:video": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts node scripts/run-render-video.mjs",
     "render:composition": "node scripts/run-render-composition.mjs",
@@ -86,6 +86,7 @@
     "spider:extract:file": "cross-env SPIDER_OUTPUT_DIR=output/spider tsx packages/spider/cli-extract-text-file-json.ts",
     "spider:extract:url": "cross-env SPIDER_OUTPUT_DIR=output/spider tsx packages/spider/cli-extract-page-url-json.ts",
     "caption:env": "cross-env SPIDER_OUTPUT_DIR=output/spider CAPTION_OUTPUT_DIR=output/spider CAPTION_INPUT_JSON=output/spider/output.json tsx packages/caption-generator/cli-env.ts",
+    "ppt:from-vtt": "tsx packages/caption-generator/ppt-from-vtt.ts",
     "sync:public": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts SPIDER_PUBLIC_DIR=public/spider VIDEO_PUBLIC_DIR=public/video node scripts/sync-outputs-to-public.mjs",
     "pipeline:zhihu-video": "cross-env SPIDER_OUTPUT_DIR=output/spider node scripts/run-pipeline-zhihu-video.mjs",
     "video:zhihu": "cross-env SPIDER_OUTPUT_DIR=output/spider node scripts/run-pipeline-zhihu-video.mjs",

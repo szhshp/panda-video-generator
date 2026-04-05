@@ -12,6 +12,15 @@ export type CaptionLlmConfig = {
 };
 
 /**
+ * Human-readable provider name for logs and errors.
+ * When adding a provider: extend `CaptionLlmId` in `getCaptionLlmConfig` and add a case here.
+ */
+export function captionLlmProviderLabel(cfg: CaptionLlmConfig): string {
+  if (cfg.id === 'moonshot') return 'Kimi (Moonshot)';
+  return 'DeepSeek';
+}
+
+/**
  * Defaults match DeepSeek OpenAI-compatible API.
  * @see https://api-docs.deepseek.com/ — base_url `https://api.deepseek.com`, model `deepseek-chat`.
  * You may also use `https://api.deepseek.com/v1`; it is unrelated to model versioning.

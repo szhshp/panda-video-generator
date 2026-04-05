@@ -5,6 +5,7 @@
   "exports": {
     ".": "./caption-generator.ts",
     "./llm-config": "./llm-config.ts",
+    "./llm-chat": "./llm-chat.ts",
     "./prompts": "./video-script-prompts.ts",
     "./paths": "./paths.ts",
     "./pipeline": "./pipeline-from-json.ts",
