@@ -74,7 +74,7 @@ const PPT_COVER_PROPS_PATH = path.join(
   projectRoot,
   "output",
   "video",
-  "ppt-deck-cover-props.json",
+  "cover-ppt-props.json",
 );
 
 fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });

@@ -92,6 +92,8 @@
     "sync:public": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts SPIDER_PUBLIC_DIR=public/spider VIDEO_PUBLIC_DIR=public/video node scripts/sync-outputs-to-public.mjs",
     "pipeline:zhihu-video": "cross-env SPIDER_OUTPUT_DIR=output/spider node scripts/run-pipeline-zhihu-video.mjs",
     "video:zhihu": "cross-env SPIDER_OUTPUT_DIR=output/spider node scripts/run-pipeline-zhihu-video.mjs",
+    "pipeline:zhihu-ppt": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts node scripts/run-pipeline-zhihu-ppt.mjs",
+    "video:zhihu-ppt": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts node scripts/run-pipeline-zhihu-ppt.mjs",
     "login:bilibili": "playwright test automations/Bilibili/login-bilibili.spec.ts --project=chromium --headed",
     "login:douyin": "playwright test automations/Douyin/login-douyin.spec.ts --project=chromium --headed",
     "login:kuaishou": "playwright test automations/Kuaishou/login-kuaishou.spec.ts --project=chromium --headed",

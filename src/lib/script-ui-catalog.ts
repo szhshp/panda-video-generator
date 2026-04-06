@@ -24,6 +24,8 @@ export const SCRIPT_GROUP_ORDER: ScriptGroupSpec[] = [
       "pipeline:tts-render",
       "pipeline:zhihu-video",
       "video:zhihu",
+      "pipeline:zhihu-ppt",
+      "video:zhihu-ppt",
       "tts",
       "render:video",
       "render:composition",
@@ -87,6 +89,8 @@ export const SCRIPT_LABEL_ZH: Partial<Record<string, string>> = {
   "pipeline:tts-render": "口播流水线：TTS 后渲染",
   "pipeline:zhihu-video": "知乎抓取到成片流水线",
   "video:zhihu": "同上（别名）",
+  "pipeline:zhihu-ppt": "知乎抓取到 PPT-Deck 流水线（含 ppt:from-vtt）",
+  "video:zhihu-ppt": "同上（别名）",
   tts: "仅运行 TTS",
   "render:video": "按脚本渲染视频",
   "render:composition": "渲染指定 Composition",
@@ -153,6 +157,18 @@ const SCRIPT_PARAM_PRESETS_CORE: Partial<
     {
       label: "示例：替换为真实 URL",
       args: ["https://zhuanlan.zhihu.com/p/0000000"],
+    },
+  ],
+  "pipeline:zhihu-ppt": [
+    {
+      label: "示例：知乎问题页",
+      args: ["https://www.zhihu.com/question/316150890"],
+    },
+  ],
+  "video:zhihu-ppt": [
+    {
+      label: "示例：知乎问题页",
+      args: ["https://www.zhihu.com/question/316150890"],
     },
   ],
 };

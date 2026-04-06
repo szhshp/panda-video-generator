@@ -49,21 +49,118 @@ export function computeVttSyncedSlideDurationFrames(
   return frames;
 }
 
+export type PptSegment = {
+  text: string;
+  isHeading: boolean;
+};
+
+/** Split slide string by <br>; heading if first raw line starts with # */
+export function parseSlideSegments(slide: string): PptSegment[] {
+  const rawParts = slide
+    .split(/<br\s*\/?>/i)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return rawParts.map((raw) => {
+    const isHeading = /^#+\s/.test(raw);
+    const text = raw.replace(/^#+\s*/, "").trim();
+    return { text, isHeading };
+  });
+}
+
+/** One PPT-Deck page after normalization (`title.json` may use legacy string or this shape). */
+export type PptSlidePage = {
+  title: string;
+  subtitle: string;
+  items: string[];
+};
+
+function stripPptBulletLine(text: string): string {
+  return text.replace(/^[-*•]\s+/, "").trim();
+}
+
+/** Legacy: "# line" chunks split by `<br>`, 1st=title, 2nd=subtitle, rest=items. */
+export function legacyStringToPptSlidePage(slide: string): PptSlidePage {
+  const segs = parseSlideSegments(slide);
+  if (segs.length === 0) {
+    return { title: "", subtitle: "", items: [] };
+  }
+  const title = segs[0]!.text;
+  if (segs.length === 1) {
+    return { title, subtitle: "", items: [] };
+  }
+  const subtitle = segs[1]!.text;
+  const items = segs
+    .slice(2)
+    .map((s) => stripPptBulletLine(s.text))
+    .filter(Boolean);
+  return { title, subtitle, items };
+}
+
+function normalizeSlideJsonEntry(raw: unknown): PptSlidePage | null {
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (!t) return null;
+    return legacyStringToPptSlidePage(t);
+  }
+  if (raw !== null && typeof raw === "object" && !Array.isArray(raw)) {
+    const o = raw as Record<string, unknown>;
+    const title = typeof o.title === "string" ? o.title.trim() : "";
+    const subtitle =
+      typeof o.subtitle === "string" ? o.subtitle.trim() : "";
+    const rawItems = o.items;
+    const items = Array.isArray(rawItems)
+      ? rawItems
+          .filter((x): x is string => typeof x === "string")
+          .map((x) => x.trim())
+          .filter(Boolean)
+      : [];
+    if (!title && items.length === 0) return null;
+    return {
+      title: title || "…",
+      subtitle,
+      items,
+    };
+  }
+  return null;
+}
+
+/** Segments for timing / fade math (heading + optional subtitle + bullets). */
+export function pptSlidePageToSegments(page: PptSlidePage): PptSegment[] {
+  const out: PptSegment[] = [{ text: page.title, isHeading: true }];
+  const sub = page.subtitle.trim();
+  if (sub) {
+    out.push({ text: sub, isHeading: false });
+  }
+  for (const raw of page.items) {
+    const t = raw.trim();
+    if (t) {
+      out.push({ text: t, isHeading: false });
+    }
+  }
+  return out;
+}
+
 /**
  * `public/video/title.json` (and spider copy): title for legacy comps + optional `slides` for `PPT-Deck`.
+ * Each slide may be a **string** (legacy `"# t <br> …"`) or **{ title, subtitle?, items[] }**.
  */
 export const TitleJsonForPptSchema = z
   .object({
     title: z.string(),
     subtitle: z.string().optional(),
-    slides: z.array(z.string()).optional(),
+    slides: z.array(z.unknown()).optional(),
     /** Start time in seconds (narration / VTT t=0) when each slide becomes active; same length as slides. */
     slideStartSec: z.array(z.number()).optional(),
     narrationVttFile: z.string().optional(),
     narrationVtt: z.string().optional(),
   })
   .transform((o) => {
-    const slides = Array.isArray(o.slides) ? o.slides : [];
+    const rawSlides = Array.isArray(o.slides) ? o.slides : [];
+    const slides: PptSlidePage[] = [];
+    for (const s of rawSlides) {
+      const n = normalizeSlideJsonEntry(s);
+      if (n) slides.push(n);
+    }
     const slideStartSec = normalizeDeckSlideStartSec(slides.length, o.slideStartSec);
     return {
       title: o.title,
@@ -102,11 +199,6 @@ export function getWebVttDurationSeconds(vtt: string): number {
   return maxEndMs / 1000;
 }
 
-export type PptSegment = {
-  text: string;
-  isHeading: boolean;
-};
-
 export const DEFAULT_PPT_TIMING = {
   charSeconds: 0.11,
   minSlideSeconds: 2.6,
@@ -118,19 +210,6 @@ export const DEFAULT_PPT_TIMING = {
 } as const;
 
 export type PptTiming = typeof DEFAULT_PPT_TIMING;
-
-/** Split slide string by <br>; heading if first raw line starts with # */
-export function parseSlideSegments(slide: string): PptSegment[] {
-  const rawParts = slide
-    .split(/<br\s*\/?>/i)
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
-  return rawParts.map((raw) => {
-    const isHeading = /^#+\s/.test(raw);
-    const text = raw.replace(/^#+\s*/, "").trim();
-    return { text, isHeading };
-  });
-}
 
 function computeSlideDurationFramesFromSegments(
   segments: PptSegment[],
@@ -173,11 +252,11 @@ export function computeIntroDurationFrames(
 }
 
 export function computeSlideDurationFrames(
-  slide: string,
+  slide: PptSlidePage,
   fps: number,
   opts: PptTiming = DEFAULT_PPT_TIMING,
 ): number {
-  const segments = parseSlideSegments(slide);
+  const segments = pptSlidePageToSegments(slide);
   return computeSlideDurationFramesFromSegments(segments, fps, opts, false);
 }
 
@@ -215,7 +294,7 @@ export function computePPTDeckWrapperFramesAfter(fps: number): number {
   return Math.ceil(PPT_VIDEO_WRAPPER.logoEndingSeconds * fps);
 }
 
-/** Sum of slide timings only (typography cover card is wrapper-before; raster from `PPT-Deck-Cover-Static` is separate). */
+/** Sum of slide timings only (typography cover card is wrapper-before; raster is `output/video/cover.{png,jpg}` with PPT-Deck-Cover-Static or Cover-Static). */
 export function computePptSlidesTotalFrames(
   deck: SlideDeck,
   fps: number,

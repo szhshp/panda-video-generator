@@ -1,7 +1,7 @@
 /**
- * Shared Remotion stills:
- * - Cover-Static → output/video/cover.png (+ ffmpeg → cover.jpg)
- * - PPT-Deck-Cover-Static → output/video/ppt-deck-cover.png (+ jpg)
+ * Shared Remotion stills; both write the same artifacts:
+ * - Cover-Static (legacy white card)
+ * - PPT-Deck-Cover-Static (PPT typography) → output/video/cover.png (+ ffmpeg → cover.jpg)
  * Optional fallback: first frame of an existing MP4 → cover.jpg.
  */
 import fs from "node:fs";
@@ -51,14 +51,6 @@ function tryPptDeckCoverStatic(outPng, propsFilePath) {
     args.push(`--props=${propsFilePath}`);
   }
   return run("pnpm", args) === 0;
-}
-
-export function pptDeckCoverArtifactPaths() {
-  const dir = path.join(projectRoot, "output", "video");
-  return {
-    PPT_COVER_PNG: path.join(dir, "ppt-deck-cover.png"),
-    PPT_COVER_JPG: path.join(dir, "ppt-deck-cover.jpg"),
-  };
 }
 
 /**
@@ -113,28 +105,28 @@ export function generateCoverStillAndJpg(propsFile, opts = {}) {
 }
 
 /**
- * Same pattern as {@link generateCoverStillAndJpg}: Remotion still + optional ffmpeg JPG.
+ * Same outputs as {@link generateCoverStillAndJpg} (`cover.png` / `cover.jpg`), using `PPT-Deck-Cover-Static`.
  * @param {string | undefined} propsFile - JSON with `{ title, subtitle? }`
  * @param {{ label?: string }} [opts]
  * @returns {{ pngOk: boolean, jpgOk: boolean }}
  */
 export function generatePptDeckCoverStaticAndJpg(propsFile, opts = {}) {
-  const { PPT_COVER_PNG, PPT_COVER_JPG } = pptDeckCoverArtifactPaths();
-  fs.mkdirSync(path.dirname(PPT_COVER_PNG), { recursive: true });
+  const { COVER_PNG, COVER_JPG } = coverArtifactPaths();
+  fs.mkdirSync(path.dirname(COVER_PNG), { recursive: true });
 
-  const label = opts.label ?? "PPT-Deck cover image";
+  const label = opts.label ?? "Cover image (PPT-Deck)";
   console.log("");
   console.log(`${YELLOW}🖼️  ${label}...${NC}`);
 
   let pngOk = false;
   if (propsFile && fs.existsSync(propsFile)) {
-    if (tryPptDeckCoverStatic(PPT_COVER_PNG, propsFile)) {
-      console.log(`${GREEN}✅ PPT cover PNG: ${PPT_COVER_PNG}${NC}`);
+    if (tryPptDeckCoverStatic(COVER_PNG, propsFile)) {
+      console.log(`${GREEN}✅ Cover PNG: ${COVER_PNG}${NC}`);
       pngOk = true;
     }
   }
-  if (!pngOk && tryPptDeckCoverStatic(PPT_COVER_PNG, undefined)) {
-    console.log(`${GREEN}✅ PPT cover PNG: ${PPT_COVER_PNG}${NC}`);
+  if (!pngOk && tryPptDeckCoverStatic(COVER_PNG, undefined)) {
+    console.log(`${GREEN}✅ Cover PNG: ${COVER_PNG}${NC}`);
     pngOk = true;
   }
 
@@ -143,20 +135,20 @@ export function generatePptDeckCoverStaticAndJpg(propsFile, opts = {}) {
     if (
       run("ffmpeg", [
         "-i",
-        PPT_COVER_PNG,
+        COVER_PNG,
         "-frames:v",
         "1",
         "-update",
         "1",
         "-q:v",
         "2",
-        PPT_COVER_JPG,
+        COVER_JPG,
         "-y",
         "-loglevel",
         "warning",
       ]) === 0
     ) {
-      console.log(`${GREEN}✅ PPT cover JPG: ${PPT_COVER_JPG}${NC}`);
+      console.log(`${GREEN}✅ Cover JPG: ${COVER_JPG}${NC}`);
       jpgOk = true;
     }
   }

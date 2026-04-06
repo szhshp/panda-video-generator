@@ -340,7 +340,7 @@ export const Content: React.FC<ContentProps> = ({
 						position: 'absolute',
 						...(captionBottom
 							? {
-								bottom: '6%',
+								bottom: '0',
 								left: '50%',
 								transform: `translate(calc(-50% + ${translateX}px), 0) scale(${scale})`,
 								transformOrigin: 'center bottom',

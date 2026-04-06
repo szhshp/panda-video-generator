@@ -21,9 +21,8 @@ import {
   computePPTDeckWrapperFramesAfter,
   computePPTDeckWrapperFramesBefore,
   computeSlideDurationFrames,
-  parseSlideSegments,
+  type PptSlidePage,
   type SlideDeck,
-  type PptSegment,
   DEFAULT_PPT_TIMING,
   PPT_DECK_MAX_CONTENT_WIDTH_PX,
 } from "../../../types/ppt";
@@ -59,27 +58,6 @@ function formatNarrationRange(startSec: number, endSec: number): string {
 /** Strip leading list markers so bullets render with a single `•`. */
 function stripBulletPrefix(text: string): string {
   return text.replace(/^[-*•]\s+/, "").trim();
-}
-
-/**
- * Map `parseSlideSegments` output to PPT layout: 1st line = main title, 2nd = subtitle,
- * remaining lines = bullets (content authors typically use 3–5 `<br>`-separated bullets).
- */
-function partitionSlideForPptLayout(segments: PptSegment[]): {
-  title: string;
-  subtitle?: string;
-  bullets: string[];
-} {
-  if (segments.length === 0) {
-    return { title: "", bullets: [] };
-  }
-  const title = segments[0]!.text;
-  if (segments.length === 1) {
-    return { title, bullets: [] };
-  }
-  const subtitle = segments[1]!.text;
-  const bullets = segments.slice(2).map((s) => stripBulletPrefix(s.text));
-  return { title, subtitle, bullets };
 }
 
 const PPTDeckBgm: React.FC<{ durationInFrames: number }> = ({
@@ -127,7 +105,7 @@ export type PPTDeckProps = {
 };
 
 const PptSlideDeckLayout: React.FC<{
-  segments: PptSegment[];
+  slide: PptSlidePage;
   durationInFrames: number;
   /** Main title color */
   titleColor?: string;
@@ -136,7 +114,7 @@ const PptSlideDeckLayout: React.FC<{
   /** Shown in corner; seconds from main-segment start (same origin as TTS / burn-in captions). */
   narrationTimeLabel?: string;
 }> = ({
-  segments,
+  slide,
   durationInFrames,
   titleColor = "#f1f5f9",
   bodyColor = "#94a3b8",
@@ -149,7 +127,10 @@ const PptSlideDeckLayout: React.FC<{
     const slideFadeIn = t.slideFadeInFrames;
     const lineFadeIn = t.lineFadeInFrames;
     const slideFadeOut = t.slideFadeOutFrames;
-    const { title, subtitle, bullets } = partitionSlideForPptLayout(segments);
+    const title = slide.title.trim();
+    const subtitle = slide.subtitle.trim() || undefined;
+    const bullets = slide.items.map((item) => stripBulletPrefix(item));
+    const baseBulletLine = subtitle ? 2 : 1;
 
     const shellOpacity =
       interpolate(
@@ -279,7 +260,7 @@ const PptSlideDeckLayout: React.FC<{
             }}
           >
             {bullets.map((b, i) => {
-              const lineIndex = 2 + i;
+              const lineIndex = baseBulletLine + i;
               return (
                 <div
                   key={`${lineIndex}-${b.slice(0, 32)}`}
@@ -377,7 +358,7 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
         </Series.Sequence>
         <Series.Sequence durationInFrames={mainFrames} premountFor={fps}>
           <AbsoluteFill style={{ backgroundColor: PPT_DECK_CANVAS_BG }}>
-            <PptDeckGeometricBackdrop />
+            <PptDeckGeometricBackdrop sequenceFrom={coverFrames} />
             <AbsoluteFill style={{ zIndex: 1 }}>
               <Series>
                 {(() => {
@@ -417,7 +398,7 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
                         premountFor={fps}
                       >
                         <PptSlideDeckLayout
-                          segments={parseSlideSegments(slide)}
+                          slide={slide}
                           durationInFrames={d}
                           narrationTimeLabel={narrationTimeLabel}
                         />
@@ -428,7 +409,10 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
                 {padFrames > 0 ? (
                   <Series.Sequence durationInFrames={padFrames}>
                     <AbsoluteFill style={{ zIndex: 1 }}>
-                      <PptDeckGeometricBackdrop svgIdPrefix="ppt-deck-pad-bg" />
+                      <PptDeckGeometricBackdrop
+                        svgIdPrefix="ppt-deck-pad-bg"
+                        sequenceFrom={coverFrames}
+                      />
                     </AbsoluteFill>
                   </Series.Sequence>
                 ) : null}

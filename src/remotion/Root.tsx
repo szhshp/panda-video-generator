@@ -29,7 +29,13 @@ import {
 const DEFAULT_SLIDE_DECK: SlideDeck = TitleJsonForPptSchema.parse({
   title: "示例",
   subtitle: "在 public/video/title.json 填写 title、subtitle、slides",
-  slides: ["# 第一页 <br> slides 为字符串数组，每页用 <br> 分行"],
+  slides: [
+    {
+      title: "第一页",
+      subtitle: "",
+      items: ["要点一示例文案", "要点二说明文字"],
+    },
+  ],
 });
 
 /** Avoid stale public/ JSON in Studio after file edits (browser HTTP cache). */
@@ -291,7 +297,6 @@ export const RemotionRoot: React.FC = () => {
         height={VIDEO_HEIGHT}
         defaultProps={{
           title: DEFAULT_SLIDE_DECK.title,
-          subtitle: DEFAULT_SLIDE_DECK.subtitle || undefined,
         }}
       />
     </>

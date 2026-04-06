@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * One step after TTS: WebVTT → LLM → merge public/video/title.json (slides + narrationVttFile).
- * Then runs Remotion `PPT-Deck-Cover-Static` → output/video/ppt-deck-cover.png (+ jpg).
+ * Then runs Remotion `PPT-Deck-Cover-Static` → output/video/cover.png (+ cover.jpg, same paths as Cover-Static).
  *
  *   pnpm ppt:from-vtt -- --vtt public/tts/audio.vtt
  *   pnpm ppt:from-vtt -- --vtt output/tts/audio.vtt --narration-vtt tts/audio.vtt
@@ -25,6 +25,10 @@ import {
   loadCaptionLlmEnvFromDotenv,
 } from './llm-config';
 import { completeChatText } from './llm-chat';
+import {
+  type SlideDeck,
+  TitleJsonForPptSchema,
+} from '../../types/ppt';
 
 loadCaptionLlmEnvFromDotenv();
 
@@ -102,14 +106,6 @@ function parseWebVttCues(vtt: string): VttCue[] {
 
 // --- LLM JSON ---
 
-type SlideDeck = {
-  title: string;
-  subtitle: string;
-  slides: string[];
-  /** Seconds from VTT t=0 when each slide should appear; same length as slides. */
-  slideStartSec?: number[];
-};
-
 function stripJsonFence(raw: string): string {
   const m = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
   return m ? m[1]!.trim() : raw.trim();
@@ -125,63 +121,58 @@ function parseSlideDeckFromModel(raw: string, label: string): SlideDeck {
     );
   }
   const o = parsed as Record<string, unknown>;
-  const title = typeof o.title === 'string' ? o.title : '';
-  const subtitle = typeof o.subtitle === 'string' ? o.subtitle : '';
-  const slides = Array.isArray(o.slides)
-    ? o.slides.filter((s): s is string => typeof s === 'string')
-    : [];
-  if (!title || slides.length === 0) {
-    throw new Error(`Invalid deck: need title and slides`);
-  }
-  let slideStartSec: number[] | undefined;
-  const rawStarts = o.slideStartSec;
-  if (Array.isArray(rawStarts) && rawStarts.length === slides.length) {
-    const nums = rawStarts.map((x) =>
-      typeof x === 'number' ? x : Number(x),
-    );
-    if (
-      nums.every((n) => Number.isFinite(n) && n >= 0) &&
-      nums.every((n, i) => i === 0 || n >= nums[i - 1]!)
-    ) {
-      const off = nums[0]!;
-      slideStartSec =
-        off === 0 ? nums : nums.map((t) => +(t - off).toFixed(3));
+  try {
+    const deck = TitleJsonForPptSchema.parse({
+      title: typeof o.title === 'string' ? o.title : '',
+      subtitle: typeof o.subtitle === 'string' ? o.subtitle : '',
+      slides: Array.isArray(o.slides) ? o.slides : [],
+      slideStartSec: o.slideStartSec,
+    });
+    if (!deck.title.trim() || deck.slides.length === 0) {
+      throw new Error('need non-empty title and at least one slide');
     }
+    return deck;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    throw new Error(`Invalid deck from ${label}: ${msg}`);
   }
-  return { title, subtitle, slides, slideStartSec };
 }
 
-const VTT_SLIDES_SYSTEM = `You output only valid JSON. No markdown fences, no explanation.
+const VTT_SLIDES_SYSTEM = `你只输出合法 JSON。禁止 markdown 代码块，禁止解释。
 
-Input: WebVTT cues (time-coded dialogue). Your job is **not** to subtitle that dialogue. Build **deck titles**: high-level **labels** a producer would put in a **talk outline** — same language, same facts and intent, **no new invented claims**.
+输入：WebVTT 字幕条（带时间的对白）。你的任务**不是**给对白做字幕，而是做**讲纲级**的**deck 标题**：制片人在**演讲大纲**里会用的那种高层**标签**——语言一致、事实与意图一致，**不得捏造新论断**。
 
-**title and subtitle (the video cover / deck header):**
-- If the user message includes an **existing title** (non-empty), your JSON **"title"** MUST keep the **same subject and thesis** as that string. **Do not** reframe, rename the topic, or invent a new theme (e.g. do not turn a question about “大脑是否萎缩” into a different headline such as “精神健康风险概览”). Allowed edits only: **shorten** length, **tighten** wording, light **hook** for attention (吸睛: e.g. contrast, punctuation, one sharp fragment) — **same meaning**, same referent.
-- **"subtitle"**: same rule when an existing subtitle is given — **polish in place** or shorten; may use "" if truly unnecessary. If no existing subtitle was given, you may output a **short** optional subtitle aligned with the same topic, or "".
-- If the user says there is **no** existing title, then derive **one** short hook title from the cues only (still factual, no clickbait lies).
+**title 与 subtitle（视频封面 / deck 页眉）：**
+- 若用户消息里已有**非空标题**，JSON 的 **"title"** **必须**与该字符串保持**同一主题与论点**。**禁止**改框架、换话题名、杜撰新主题（例如不要把关于「大脑是否萎缩」的问题改成「精神健康风险概览」这类不同焦点）。仅允许：**缩短**篇幅、**收紧**措辞、适度**吸睛钩子**（如对比、标点、一个利落短句）——**语义与指称不变**。
+- **"subtitle"**：若已有副标题则同样规则——**就地润色**或缩短；确不需要可用 ""。若用户未给副标题，可输出与主题一致的**简短**可选副标题，或 ""。
+- 若用户说明**没有**现成标题，则仅从字幕条提炼**一条**简短吸睛标题（仍须属实，禁止标题党假话）。
 
-De-couple from the transcript (strict):
-- **Never** reuse cue lines or long fragments. Do **not** copy sentence rhythm, connective words, or list order from cues.
-- For Chinese: avoid any substring of **5+ consecutive characters** that appears **verbatim** in any cue (except proper nouns, numbers, or fixed terms). Rewrite with **different vocabulary** (synonyms, shorter compounds, category names).
-- Prefer **abstract nouns, contrasts** (e.g. 消费 / 创造), **stage names** (困境 / 转机 / 做法), **one verb + object** pairs — not what the speaker said word-for-word.
-- Each slide should still **truthfully cover** the cues it spans; mentally compress a **block of cues** into **one chapter idea**, then name that idea in **≤12 characters** for the "# " line when possible.
+与逐字稿脱钩（严格）：
+- **禁止**复用某条 cue 的整句或大段原文。**禁止**模仿语速节奏、连接词、或 cue 的列举顺序。
+- 中文：避免任何在任一 cue 中**原样出现**的 **5 个及以上连续字**的子串（专名、数字、固定术语除外）。用**不同措辞**改写（近义词、更短复合词、类目名）。
+- 优先**抽象名、对概念**（如 消费 / 创造）、**阶段名**（困境 / 转机 / 做法）、**动宾短搭配**——不要照搬说话人的字句。
+- 每张幻灯仍须**如实覆盖**其跨度内的 cues；先在脑中把**一组 cues**压成**一个章节意**，再写入该张的 **"title"** 字段，尽量 **≤12 字**（若可）。
 
-Slide shape (keep screens quiet):
-- **Every** slide MUST use: **"# " + title** then **at least two** " <br> " lines — **sub-points** (short outline bullets), same language, still de-coupled from cue wording.
-- Each sub line: **2–14 Chinese characters** (or equally short in other languages). **No** long sentences; **no** cue echo. **Never** more than **four** " <br> " lines total per slide (title + 3 subs max).
-- **Fewer, wider slides** beats many slides that echo the VTT beat-by-beat. Merge cues that share one theme.
+幻灯版式（画面尽量干净）：
+- **slides** 为对象数组。**每个**对象形如：\`{ "title": string, "subtitle": string, "items": string[] }\`。
+- **subtitle**（每张幻灯）：幻灯内副标题；不需要则填 **""**。
+- **items**：**仅**要点 bullet 字符串数组（不要 "# "、不要 \`<br>\`）。**2–5** 条；**禁止**少于 2 或多于 5。语言与 cues 一致，措辞脱钩。
+- **items** 中每条：中文 **6–20 字**（计汉字）；非中文 **6–20 个字符**（含空格）——紧凑短语，**禁止**长句与 echo cue。
+- **少而宽**的幻灯胜过按 VTT 节拍切很多张 echo 的幻灯。主题相同的 cues 要合并。
 
 Schema:
 {
   "title": string,
   "subtitle": string,
-  "slides": string[],
+  "slides": [
+    { "title": string, "subtitle": string, "items": string[] }
+  ],
   "slideStartSec": number[]
 }
 
-slideStartSec (required): same length as slides. slideStartSec[i] = seconds from WebVTT start when slide i appears — use the **start time of the first cue** this slide covers (from the listing). slideStartSec[0] = 0; non-decreasing; decimals OK.
+slideStartSec（必填）：长度与 slides 相同。slideStartSec[i] = 从 WebVTT 起点起第 i 张幻灯出现的秒数——取该幻灯所覆盖的**第一条 cue 的起始时间**（来自列表）。slideStartSec[0] = 0；非递减；可用小数。
 
-Formatting: join lines with " <br> " only (title line then ≥2 sub lines); no markdown fences.`;
+禁止 markdown 代码块。**禁止**在 slides 里用 "# " 或 " <br> "；只用上述结构化 **items** 数组。`;
 
 type ExistingDeckMeta = { title?: string; subtitle?: string };
 
@@ -238,7 +229,7 @@ async function slideDeckFromVttWithLlm(
   const raw = await completeChatText({
     llm,
     system: VTT_SLIDES_SYSTEM,
-    user: `${metaBlock}WebVTT cues:\n\n${block}\n\nFinal check: each slide has "# " title plus **at least two** " <br> " sub lines (outline bullets only); no subtitle-only slides; paraphrase so lines would not match cue text in a long-substring search (except proper nouns / numbers). JSON "title"/"subtitle" must follow the title/subtitle rules above.`,
+    user: `${metaBlock}WebVTT cues:\n\n${block}\n\nFinal check: **slides** 的每个元素都是 \`{ title, subtitle, items }\`，**items** 含 **2–5** 条字符串；**每条** **6–20** 字（中文计汉字）或 **6–20** 字符（非中文含空格）。顶层 **title** / **subtitle** 遵守封面规则；每张的 **subtitle** 可为 ""。`,
     taskLabel: 'PPT slides from VTT',
   });
   if (raw == null) {
@@ -250,20 +241,38 @@ async function slideDeckFromVttWithLlm(
 function slideDeckHeuristic(vttText: string, titleHint?: string): SlideDeck {
   const cues = parseWebVttCues(vttText);
   if (cues.length === 0) throw new Error('No cues in WebVTT');
-  const slides = cues.map((c) =>
-    c.text
+  const slides = cues.map((c) => {
+    const lines = c.text
       .split(/\n+/)
       .map((s) => s.trim())
       .filter(Boolean)
-      .join(' <br> '),
-  );
+      .map((s) => s.replace(/^#+\s*/, '').trim())
+      .filter(Boolean);
+    const lineTitle = lines[0] ?? '…';
+    const rest = lines.slice(1);
+    let items: string[];
+    if (rest.length >= 2) {
+      items = rest.slice(0, 5);
+    } else if (rest.length === 1) {
+      const one = rest[0]!;
+      items = [one, one];
+    } else {
+      items = [lineTitle || '…', '…'];
+    }
+    return { title: lineTitle, subtitle: '', items };
+  });
   const title =
     titleHint?.trim() ||
     cues[0]!.text.replace(/\n/g, ' ').slice(0, 24).trim() ||
     'Untitled';
   const t0 = cues[0]!.startMs / 1000;
   const slideStartSec = cues.map((c) => +(c.startMs / 1000 - t0).toFixed(3));
-  return { title, subtitle: '', slides, slideStartSec };
+  return TitleJsonForPptSchema.parse({
+    title,
+    subtitle: '',
+    slides,
+    slideStartSec,
+  });
 }
 
 // --- CLI ---

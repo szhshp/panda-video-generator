@@ -1,6 +1,6 @@
 /**
  * Writes props from `public/video/title.json` and runs Remotion still `PPT-Deck-Cover-Static`
- * → `output/video/ppt-deck-cover.png` (+ optional JPG). Used by `ppt:from-vtt` and manually.
+ * → `output/video/cover.png` (+ `cover.jpg`). Same filenames as Cover-Static. Used by `ppt:from-vtt` and manually.
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -17,7 +17,7 @@ const PROPS_PATH = path.join(
   projectRoot,
   "output",
   "video",
-  "ppt-deck-cover-props.json",
+  "cover-ppt-props.json",
 );
 
 if (!fs.existsSync(TITLE_JSON)) {

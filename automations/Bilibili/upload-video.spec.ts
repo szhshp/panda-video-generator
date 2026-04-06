@@ -14,6 +14,7 @@ import { UPLOAD_PATHS } from '../../types/paths';
  * 
  * Or override with environment variables:
  *   VIDEO_PATH=out/custom.mp4 VIDEO_TITLE="Custom Title" pnpm upload:bilibili
+ * Cover: output/video/cover.jpg (Cover-Static / PPT-Deck-Cover-Static share this path). Override with VIDEO_COVER.
  */
 
 interface UploadConfig {
@@ -69,11 +70,12 @@ function getUploadConfig(): UploadConfig {
     );
   }
   
-  // Get cover path (default to generated cover.jpg)
   const defaultCoverPath = path.join(process.cwd(), UPLOAD_PATHS.DEFAULT_COVER);
-  const coverPath = process.env.VIDEO_COVER 
+  const coverPath = process.env.VIDEO_COVER
     ? path.resolve(process.env.VIDEO_COVER)
-    : (existsSync(defaultCoverPath) ? path.resolve(defaultCoverPath) : undefined);
+    : existsSync(defaultCoverPath)
+      ? path.resolve(defaultCoverPath)
+      : undefined;
   
   const config: UploadConfig = {
     videoPath: path.resolve(videoPath),
