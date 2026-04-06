@@ -1,6 +1,6 @@
 /**
  * Remotion render for one composition (no sync — run sync/tts separately if needed).
- * Always runs Cover-Still + JPG (or ffmpeg fallback from output) so STEP3 matches upload assets.
+ * Always runs Cover-Static + JPG and PPT-Deck-Cover-Static + JPG when title.json supports them.
  *
  * Usage:
  *   node scripts/run-render-composition.mjs [compositionId]
@@ -18,9 +18,13 @@ import {
   coverArtifactPaths,
   generateCoverJpgFromMp4,
   generateCoverStillAndJpg,
+  generatePptDeckCoverStaticAndJpg,
 } from "./lib/generate-remotion-cover.mjs";
 import { run } from "./lib/run-cmd.mjs";
-import { writeRenderPropsFromTitle } from "./lib/render-props.mjs";
+import {
+  writePptDeckCoverPropsFromTitle,
+  writeRenderPropsFromTitle,
+} from "./lib/render-props.mjs";
 
 const BLUE = "\x1b[0;34m";
 const GREEN = "\x1b[0;32m";
@@ -66,13 +70,23 @@ const VIDEO_PUBLIC_DIR = resolvePath(
 const TITLE_PUBLIC = path.join(VIDEO_PUBLIC_DIR, "title.json");
 const OUTPUT_FILE = path.join(projectRoot, "output", "video", "video.mp4");
 const PROPS_PATH = path.join(projectRoot, "output", "video", "render-props.json");
+const PPT_COVER_PROPS_PATH = path.join(
+  projectRoot,
+  "output",
+  "video",
+  "ppt-deck-cover-props.json",
+);
 
 fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
 
 let propsFile = "";
+let pptCoverPropsFile = "";
 if (fs.existsSync(TITLE_PUBLIC)) {
   if (writeRenderPropsFromTitle(TITLE_PUBLIC, PROPS_PATH)) {
     propsFile = PROPS_PATH;
+  }
+  if (writePptDeckCoverPropsFromTitle(TITLE_PUBLIC, PPT_COVER_PROPS_PATH)) {
+    pptCoverPropsFile = PPT_COVER_PROPS_PATH;
   }
 } else {
   console.log(`${YELLOW}⚠️  No ${TITLE_PUBLIC} — using default title${NC}`);
@@ -82,6 +96,12 @@ generateCoverStillAndJpg(
   propsFile && fs.existsSync(propsFile) ? propsFile : undefined,
   { label: "Cover image (before render)" },
 );
+
+if (pptCoverPropsFile && fs.existsSync(pptCoverPropsFile)) {
+  generatePptDeckCoverStaticAndJpg(pptCoverPropsFile, {
+    label: "PPT-Deck cover (before render)",
+  });
+}
 
 const renderBase = [
   "exec",
@@ -101,11 +121,17 @@ const renderArgs =
 console.log(`${BLUE}🎬 Remotion · ${compositionId} → ${OUTPUT_FILE}${NC}`);
 if (run("pnpm", renderArgs) !== 0) {
   if (propsFile && fs.existsSync(propsFile)) fs.rmSync(propsFile, { force: true });
+  if (pptCoverPropsFile && fs.existsSync(pptCoverPropsFile)) {
+    fs.rmSync(pptCoverPropsFile, { force: true });
+  }
   process.exit(1);
 }
 
 if (propsFile && fs.existsSync(propsFile)) {
   fs.rmSync(propsFile, { force: true });
+}
+if (pptCoverPropsFile && fs.existsSync(pptCoverPropsFile)) {
+  fs.rmSync(pptCoverPropsFile, { force: true });
 }
 
 const { COVER_JPG } = coverArtifactPaths();

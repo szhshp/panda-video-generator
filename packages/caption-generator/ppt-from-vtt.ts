@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 /**
  * One step after TTS: WebVTT → LLM → merge public/video/title.json (slides + narrationVttFile).
+ * Then runs Remotion `PPT-Deck-Cover-Static` → output/video/ppt-deck-cover.png (+ jpg).
  *
  *   pnpm ppt:from-vtt -- --vtt public/tts/audio.vtt
  *   pnpm ppt:from-vtt -- --vtt output/tts/audio.vtt --narration-vtt tts/audio.vtt
  *   pnpm ppt:from-vtt -- --vtt public/tts/audio.vtt --no-llm
  */
 
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import {
   access,
   copyFile,
@@ -368,6 +371,20 @@ async function main(): Promise<void> {
       : '') +
     ')',
   );
+
+  const coverStaticScript = resolve(cwd, 'scripts/generate-ppt-deck-cover-static.mjs');
+  if (existsSync(coverStaticScript)) {
+    const r = spawnSync(process.execPath, [coverStaticScript], {
+      cwd,
+      stdio: 'inherit',
+      env: { ...process.env },
+    });
+    if (r.status !== 0) {
+      console.warn(
+        'PPT-Deck cover static failed (run from repo root with pnpm install). Non-fatal.',
+      );
+    }
+  }
 }
 
 main().catch((e) => {

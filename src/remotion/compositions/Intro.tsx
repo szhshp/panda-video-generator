@@ -30,7 +30,9 @@ loadFont({
 });
 
 // TitleSequence component with logo - exported for use at the end of video
-export const TitleSequence: React.FC = () => {
+export const TitleSequence: React.FC<{ endCardOnDark?: boolean }> = ({
+  endCardOnDark = false,
+}) => {
   const sequenceFrame = useCurrentFrame(); // Relative frame within Sequence
   const { fps } = useVideoConfig();
 
@@ -124,14 +126,14 @@ export const TitleSequence: React.FC = () => {
               whiteSpace: 'nowrap',
               textAlign: 'center',
               marginTop: '40px',
-              color: '#000000',
+              color: endCardOnDark ? '#f1f5f9' : '#000000',
             }}
           >
             {fixedTitle}
           </h4>
         </div>
       </AbsoluteFill>
-      <WatermarkText />
+      <WatermarkText style={endCardOnDark ? 'content' : 'cover'} />
     </div>
   );
 };

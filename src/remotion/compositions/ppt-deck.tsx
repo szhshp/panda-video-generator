@@ -7,7 +7,6 @@ import {
   AbsoluteFill,
   Easing,
   Html5Audio,
-  Img,
   interpolate,
   Sequence,
   Series,
@@ -17,7 +16,6 @@ import {
 } from "remotion";
 import {
   computePPTDeckCoverFrames,
-  computePPTDeckIntroFrames,
   computePPTDeckMainContentFrames,
   computeVttSyncedSlideDurationFrames,
   computePPTDeckWrapperFramesAfter,
@@ -30,89 +28,18 @@ import {
   PPT_DECK_MAX_CONTENT_WIDTH_PX,
 } from "../../../types/ppt";
 import { REMOTION_PATHS } from "../../../types/paths";
-import { defaultMyCompProps } from "../../../types/constants";
-import { loadFont } from "@remotion/fonts";
-import { Intro, TitleSequence } from "./Intro";
-import { Cover } from "./Cover";
+import { TitleSequence } from "./Intro";
 import { Content } from "./Content";
-
-/** Same face as Cover / Intro titles; slide font sizes unchanged. */
-const SLIDE_FONT_FAMILY = "dingliesongtypeface";
-
-loadFont({
-  family: SLIDE_FONT_FAMILY,
-  url: staticFile("fonts/dingliesongtypeface.ttf"),
-}).catch((err) => {
-  console.error("Failed to load slide font:", err);
-});
+import { PptDeckCover } from "./ppt-deck-cover";
+import {
+  PPT_DECK_CANVAS_BG,
+  PPT_SLIDE_FONT_FAMILY,
+  PPT_SLIDE_TEXT_SHADOW,
+  PptDeckCornerLockup,
+  PptDeckGeometricBackdrop,
+} from "./ppt-deck-chrome";
 
 const BGM_STATIC = "bgm/0.mp3";
-
-// Slide backdrop is `public/image/ppt-bg/0.png`. Optional: `pnpm shuffle:ppt-bg` before render.
-
-const pptDeckBgStyle: React.CSSProperties = {
-  width: "100%",
-  height: "100%",
-  objectFit: "cover",
-};
-
-const PptSlideBackground: React.FC = () => (
-  <Img
-    src={staticFile(REMOTION_PATHS.PPT_DECK_BG)}
-    style={pptDeckBgStyle}
-    alt=""
-  />
-);
-
-/**
- * Top-left lockup matching `Cover`: greyed logo + `defaultMyCompProps.title`
- * (same opacity and logo scale as Cover’s corner row).
- */
-const PPTDeckTrademark: React.FC = () => {
-  const { width, height } = useVideoConfig();
-  const logoSize = Math.min(width, height) * 0.1;
-  const iconPx = logoSize / 2;
-
-  return (
-    <div
-      style={{
-        position: "absolute",
-        top: 28,
-        left: 216,
-        zIndex: 20,
-        pointerEvents: "none",
-        display: "flex",
-        flexDirection: "row",
-        alignItems: "center",
-        opacity: 0.3,
-        maxWidth: "min(520px, 42vw)",
-      }}
-    >
-      <Img
-        src={staticFile(REMOTION_PATHS.TRADEMARK_LOGO)}
-        alt=""
-        style={{
-          width: iconPx,
-          height: iconPx,
-          objectFit: "contain",
-          margin: 8,
-          flexShrink: 0,
-        }}
-      />
-      <h2
-        style={{
-          margin: 0,
-          fontFamily: SLIDE_FONT_FAMILY,
-          fontSize: 38,
-          fontWeight: "bold",
-          lineHeight: 1.2,
-        }}
-      >
-        {defaultMyCompProps.title}
-      </h2>
-    </div>
-  );
-};
 
 /** Elapsed seconds from start of main segment (TTS / captions t≈0), for VTT sync. */
 function formatNarrationRange(startSec: number, endSec: number): string {
@@ -127,6 +54,32 @@ function formatNarrationRange(startSec: number, endSec: number): string {
     return `${m}:${pad}${s.toFixed(1)}`;
   };
   return `${fmt(startSec)} – ${fmt(endSec)}`;
+}
+
+/** Strip leading list markers so bullets render with a single `•`. */
+function stripBulletPrefix(text: string): string {
+  return text.replace(/^[-*•]\s+/, "").trim();
+}
+
+/**
+ * Map `parseSlideSegments` output to PPT layout: 1st line = main title, 2nd = subtitle,
+ * remaining lines = bullets (content authors typically use 3–5 `<br>`-separated bullets).
+ */
+function partitionSlideForPptLayout(segments: PptSegment[]): {
+  title: string;
+  subtitle?: string;
+  bullets: string[];
+} {
+  if (segments.length === 0) {
+    return { title: "", bullets: [] };
+  }
+  const title = segments[0]!.text;
+  if (segments.length === 1) {
+    return { title, bullets: [] };
+  }
+  const subtitle = segments[1]!.text;
+  const bullets = segments.slice(2).map((s) => stripBulletPrefix(s.text));
+  return { title, subtitle, bullets };
 }
 
 const PPTDeckBgm: React.FC<{ durationInFrames: number }> = ({
@@ -173,23 +126,20 @@ export type PPTDeckProps = {
   showSlideNarrationTime?: boolean;
 };
 
-const StaggeredSegments: React.FC<{
+const PptSlideDeckLayout: React.FC<{
   segments: PptSegment[];
   durationInFrames: number;
-  /** Heading lines (# / intro title); default slate-900 */
-  headingColor?: string;
-  /** Non-heading lines; default slate-600 */
+  /** Main title color */
+  titleColor?: string;
+  /** Subtitle + bullet body color */
   bodyColor?: string;
-  /** When true, heading uses same size/weight as body (e.g. cover title vs subtitle). */
-  headingMatchBodyTypography?: boolean;
   /** Shown in corner; seconds from main-segment start (same origin as TTS / burn-in captions). */
   narrationTimeLabel?: string;
 }> = ({
   segments,
   durationInFrames,
-  headingColor = "#0f172a",
-  bodyColor = "#334155",
-  headingMatchBodyTypography = false,
+  titleColor = "#f1f5f9",
+  bodyColor = "#94a3b8",
   narrationTimeLabel,
 }) => {
     const frame = useCurrentFrame();
@@ -199,6 +149,7 @@ const StaggeredSegments: React.FC<{
     const slideFadeIn = t.slideFadeInFrames;
     const lineFadeIn = t.lineFadeInFrames;
     const slideFadeOut = t.slideFadeOutFrames;
+    const { title, subtitle, bullets } = partitionSlideForPptLayout(segments);
 
     const shellOpacity =
       interpolate(
@@ -222,13 +173,33 @@ const StaggeredSegments: React.FC<{
         },
       );
 
+    const lineRevealOpacity = (lineIndex: number) => {
+      const from = lineIndex * staggerFrames;
+      const lineOp = interpolate(
+        frame - from,
+        [0, lineFadeIn],
+        [0, 1],
+        {
+          extrapolateLeft: "clamp",
+          extrapolateRight: "clamp",
+          easing: Easing.out(Easing.quad),
+        },
+      );
+      return shellOpacity * lineOp;
+    };
+
+    const titleSize = 56;
+    const subtitleSize = 24;
+    const bulletSize = 30;
+    const bulletGap = 14;
+
     return (
       <AbsoluteFill
         style={{
           justifyContent: "center",
-          alignItems: "center",
-          padding: 72,
-          fontFamily: SLIDE_FONT_FAMILY,
+          alignItems: "flex-start",
+          padding: "96px 96px 72px 96px",
+          fontFamily: PPT_SLIDE_FONT_FAMILY,
         }}
       >
         {narrationTimeLabel ? (
@@ -241,7 +212,7 @@ const StaggeredSegments: React.FC<{
               fontWeight: 600,
               letterSpacing: 0.02,
               fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
-              color: "rgba(15, 23, 42, 0.45)",
+              color: "rgba(241, 245, 249, 0.5)",
               pointerEvents: "none",
               zIndex: 5,
             }}
@@ -254,49 +225,102 @@ const StaggeredSegments: React.FC<{
           style={{
             maxWidth: PPT_DECK_MAX_CONTENT_WIDTH_PX,
             width: "100%",
+            textAlign: "left",
           }}
         >
-          {segments.map((seg, i) => {
-            const from = i * staggerFrames;
-            const lineOp = interpolate(
-              frame - from,
-              [0, lineFadeIn],
-              [0, 1],
-              {
-                extrapolateLeft: "clamp",
-                extrapolateRight: "clamp",
-                easing: Easing.out(Easing.quad),
-              },
-            );
-            const opacity = shellOpacity * lineOp;
-            const bodySize = 40;
-            const bodyWeight = 400;
-            const headingSize = headingMatchBodyTypography ? bodySize : 62;
-            const headingWeight = headingMatchBodyTypography ? bodyWeight : 700;
-            return (
+          {title ? (
+            <div
+              style={{
+                marginBottom: subtitle ? 10 : bullets.length ? 28 : 0,
+                opacity: lineRevealOpacity(0),
+              }}
+            >
               <div
-                key={`${i}-${seg.text.slice(0, 24)}`}
                 style={{
-                  marginBottom:
-                    seg.isHeading && !headingMatchBodyTypography ? 32 : 20,
-                  opacity,
+                  fontSize: titleSize,
+                  fontWeight: 700,
+                  lineHeight: 1.15,
+                  color: titleColor,
+                  letterSpacing: -0.02,
+                  whiteSpace: "pre-wrap",
+                  textShadow: PPT_SLIDE_TEXT_SHADOW,
                 }}
               >
+                {title}
+              </div>
+            </div>
+          ) : null}
+          {subtitle ? (
+            <div
+              style={{
+                marginBottom: bullets.length ? 36 : 0,
+                opacity: lineRevealOpacity(1),
+              }}
+            >
+              <div
+                style={{
+                  fontSize: subtitleSize,
+                  fontWeight: 500,
+                  lineHeight: 1.4,
+                  color: bodyColor,
+                  whiteSpace: "pre-wrap",
+                  textShadow: PPT_SLIDE_TEXT_SHADOW,
+                }}
+              >
+                {subtitle}
+              </div>
+            </div>
+          ) : null}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: bulletGap,
+            }}
+          >
+            {bullets.map((b, i) => {
+              const lineIndex = 2 + i;
+              return (
                 <div
+                  key={`${lineIndex}-${b.slice(0, 32)}`}
                   style={{
-                    fontSize: seg.isHeading ? headingSize : bodySize,
-                    fontWeight: seg.isHeading ? headingWeight : bodyWeight,
-                    lineHeight: 1.35,
-                    color: seg.isHeading ? headingColor : bodyColor,
-                    textAlign: "center",
-                    whiteSpace: "pre-wrap",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "flex-start",
+                    gap: 14,
+                    opacity: lineRevealOpacity(lineIndex),
                   }}
                 >
-                  {seg.text}
+                  <span
+                    style={{
+                      fontSize: bulletSize,
+                      lineHeight: 1.45,
+                      color: bodyColor,
+                      flexShrink: 0,
+                      marginTop: 2,
+                      textShadow: PPT_SLIDE_TEXT_SHADOW,
+                    }}
+                    aria-hidden
+                  >
+                    •
+                  </span>
+                  <div
+                    style={{
+                      fontSize: bulletSize,
+                      fontWeight: 400,
+                      lineHeight: 1.45,
+                      color: bodyColor,
+                      whiteSpace: "pre-wrap",
+                      flex: 1,
+                      textShadow: PPT_SLIDE_TEXT_SHADOW,
+                    }}
+                  >
+                    {b}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </AbsoluteFill>
     );
@@ -309,7 +333,6 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
 }) => {
   const { fps } = useVideoConfig();
   const coverFrames = computePPTDeckCoverFrames(fps);
-  const introFrames = computePPTDeckIntroFrames(fps);
   const logoFrames = computePPTDeckWrapperFramesAfter(fps);
   const wrapperBefore = computePPTDeckWrapperFramesBefore(fps);
   const mainFrames = computePPTDeckMainContentFrames(
@@ -344,71 +367,73 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
     Boolean(deck.narrationVttFile?.trim());
 
   return (
-    <AbsoluteFill style={{ backgroundColor: "#f8fafc" }}>
+    <AbsoluteFill style={{ backgroundColor: PPT_DECK_CANVAS_BG }}>
       <Series>
         <Series.Sequence durationInFrames={coverFrames} premountFor={fps}>
-          <Cover contentTitle={deck.title} />
-        </Series.Sequence>
-        <Series.Sequence durationInFrames={introFrames} premountFor={fps}>
-          <Intro title={deck.title} />
+          <PptDeckCover
+            title={deck.title}
+            subtitle={deck.subtitle.trim() || undefined}
+          />
         </Series.Sequence>
         <Series.Sequence durationInFrames={mainFrames} premountFor={fps}>
-          <AbsoluteFill style={{ backgroundColor: "#f8fafc" }}>
-            <PptSlideBackground />
-            <Series>
-              {(() => {
-                let cumFrames = 0;
-                return deck.slides.map((slide, idx) => {
-                  const d =
-                    vttSlideFrames != null
-                      ? vttSlideFrames[idx]!
-                      : computeSlideDurationFrames(
-                        slide,
-                        fps,
-                        DEFAULT_PPT_TIMING,
-                      );
-                  let startSec: number;
-                  let endSec: number;
-                  if (
-                    vttSlideFrames != null &&
-                    deck.slideStartSec != null
-                  ) {
-                    startSec = deck.slideStartSec[idx]!;
-                    endSec =
-                      idx + 1 < deck.slideStartSec.length
-                        ? deck.slideStartSec[idx + 1]!
-                        : narrationEndSec ?? startSec;
-                  } else {
-                    startSec = cumFrames / fps;
-                    endSec = (cumFrames + d) / fps;
-                    cumFrames += d;
-                  }
-                  const narrationTimeLabel = showSlideNarrationTime
-                    ? formatNarrationRange(startSec, endSec)
-                    : undefined;
-                  return (
-                    <Series.Sequence
-                      key={`slide-${idx}`}
-                      durationInFrames={d}
-                      premountFor={fps}
-                    >
-                      <StaggeredSegments
-                        segments={parseSlideSegments(slide)}
+          <AbsoluteFill style={{ backgroundColor: PPT_DECK_CANVAS_BG }}>
+            <PptDeckGeometricBackdrop />
+            <AbsoluteFill style={{ zIndex: 1 }}>
+              <Series>
+                {(() => {
+                  let cumFrames = 0;
+                  return deck.slides.map((slide, idx) => {
+                    const d =
+                      vttSlideFrames != null
+                        ? vttSlideFrames[idx]!
+                        : computeSlideDurationFrames(
+                          slide,
+                          fps,
+                          DEFAULT_PPT_TIMING,
+                        );
+                    let startSec: number;
+                    let endSec: number;
+                    if (
+                      vttSlideFrames != null &&
+                      deck.slideStartSec != null
+                    ) {
+                      startSec = deck.slideStartSec[idx]!;
+                      endSec =
+                        idx + 1 < deck.slideStartSec.length
+                          ? deck.slideStartSec[idx + 1]!
+                          : narrationEndSec ?? startSec;
+                    } else {
+                      startSec = cumFrames / fps;
+                      endSec = (cumFrames + d) / fps;
+                      cumFrames += d;
+                    }
+                    const narrationTimeLabel = showSlideNarrationTime
+                      ? formatNarrationRange(startSec, endSec)
+                      : undefined;
+                    return (
+                      <Series.Sequence
+                        key={`slide-${idx}`}
                         durationInFrames={d}
-                        narrationTimeLabel={narrationTimeLabel}
-                      />
-                    </Series.Sequence>
-                  );
-                });
-              })()}
-              {padFrames > 0 ? (
-                <Series.Sequence durationInFrames={padFrames}>
-                  <AbsoluteFill style={{ backgroundColor: "#f8fafc" }}>
-                    <PptSlideBackground />
-                  </AbsoluteFill>
-                </Series.Sequence>
-              ) : null}
-            </Series>
+                        premountFor={fps}
+                      >
+                        <PptSlideDeckLayout
+                          segments={parseSlideSegments(slide)}
+                          durationInFrames={d}
+                          narrationTimeLabel={narrationTimeLabel}
+                        />
+                      </Series.Sequence>
+                    );
+                  });
+                })()}
+                {padFrames > 0 ? (
+                  <Series.Sequence durationInFrames={padFrames}>
+                    <AbsoluteFill style={{ zIndex: 1 }}>
+                      <PptDeckGeometricBackdrop svgIdPrefix="ppt-deck-pad-bg" />
+                    </AbsoluteFill>
+                  </Series.Sequence>
+                ) : null}
+              </Series>
+            </AbsoluteFill>
             <Sequence durationInFrames={mainFrames}>
               <Html5Audio
                 src={staticFile(REMOTION_PATHS.TTS_AUDIO)}
@@ -419,17 +444,17 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
             <Sequence durationInFrames={mainFrames}>
               <PPTDeckBgm durationInFrames={mainFrames} />
             </Sequence>
-            <PPTDeckTrademark />
+            <PptDeckCornerLockup />
           </AbsoluteFill>
         </Series.Sequence>
         <Series.Sequence durationInFrames={logoFrames} premountFor={fps}>
-          <AbsoluteFill className="bg-white">
+          <AbsoluteFill style={{ backgroundColor: PPT_DECK_CANVAS_BG }}>
             <Html5Audio
               src={staticFile(REMOTION_PATHS.AUDIO_INTRO)}
               volume={0.6}
               name="Logo Sound"
             />
-            <TitleSequence />
+            <TitleSequence endCardOnDark />
           </AbsoluteFill>
         </Series.Sequence>
       </Series>
@@ -445,8 +470,8 @@ export const PPTDeck: React.FC<PPTDeckProps> = ({
             includeWatermark={false}
             captionLayout="bottom"
             captionFontScale={0.4}
-            captionFillColor="#64748b"
-            captionStrokeColor="#f1f5f9"
+            captionFillColor="#93c5fd"
+            captionStrokeColor="#0f172a"
             captionMaxWidthPx={PPT_DECK_MAX_CONTENT_WIDTH_PX}
           />
         </Sequence>

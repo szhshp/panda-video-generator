@@ -195,11 +195,11 @@ export function computePptTotalFrames(
 }
 
 /**
- * Match `Video.tsx`: cover + animated intro before slide body (no background clip in `PPT-Deck`).
+ * `PPT-Deck`: PPT-style typography cover (same chrome as slide intro), then slide body.
  */
 export const PPT_VIDEO_WRAPPER = {
-  coverSeconds: 0.5,
-  introSeconds: 3.5,
+  /** Hold duration for static title/subtitle cover card. */
+  coverSeconds: 1.5,
   logoEndingSeconds: 4,
 } as const;
 
@@ -207,19 +207,15 @@ export function computePPTDeckCoverFrames(fps: number): number {
   return Math.ceil(PPT_VIDEO_WRAPPER.coverSeconds * fps);
 }
 
-export function computePPTDeckIntroFrames(fps: number): number {
-  return Math.ceil(PPT_VIDEO_WRAPPER.introSeconds * fps);
-}
-
 export function computePPTDeckWrapperFramesBefore(fps: number): number {
-  return computePPTDeckCoverFrames(fps) + computePPTDeckIntroFrames(fps);
+  return computePPTDeckCoverFrames(fps);
 }
 
 export function computePPTDeckWrapperFramesAfter(fps: number): number {
   return Math.ceil(PPT_VIDEO_WRAPPER.logoEndingSeconds * fps);
 }
 
-/** Sum of slide timings only (no title.json title/subtitle intro card — that is Cover + Intro). */
+/** Sum of slide timings only (typography cover card is wrapper-before; raster from `PPT-Deck-Cover-Static` is separate). */
 export function computePptSlidesTotalFrames(
   deck: SlideDeck,
   fps: number,

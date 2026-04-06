@@ -88,6 +88,7 @@
     "spider:extract:url": "cross-env SPIDER_OUTPUT_DIR=output/spider tsx packages/spider/cli-extract-page-url-json.ts",
     "caption:env": "cross-env SPIDER_OUTPUT_DIR=output/spider CAPTION_OUTPUT_DIR=output/spider CAPTION_INPUT_JSON=output/spider/output.json tsx packages/caption-generator/cli-env.ts",
     "ppt:from-vtt": "tsx packages/caption-generator/ppt-from-vtt.ts",
+    "ppt:deck-cover-static": "node scripts/generate-ppt-deck-cover-static.mjs",
     "sync:public": "cross-env SPIDER_OUTPUT_DIR=output/spider TTS_OUTPUT_DIR=output/tts TTS_PUBLIC_DIR=public/tts SPIDER_PUBLIC_DIR=public/spider VIDEO_PUBLIC_DIR=public/video node scripts/sync-outputs-to-public.mjs",
     "pipeline:zhihu-video": "cross-env SPIDER_OUTPUT_DIR=output/spider node scripts/run-pipeline-zhihu-video.mjs",
     "video:zhihu": "cross-env SPIDER_OUTPUT_DIR=output/spider node scripts/run-pipeline-zhihu-video.mjs",

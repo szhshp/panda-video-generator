@@ -3,7 +3,7 @@ name: remotion-render
 description: >-
   Run Remotion renders from monorepo root: pnpm render:video, render:all / pipeline:tts-render,
   render:composition; sync-to-public, composition IDs, output/video paths, VIDEO_PUBLIC_DIR. Use for
-  渲染成片, output/video/video.mp4, remotion render, Cover-Still.
+  渲染成片, output/video/video.mp4, remotion render, Cover-Static.
 ---
 
 # Remotion 渲染 — 三种用法（输入 / 输出 / 环境变量）
@@ -25,7 +25,7 @@ pnpm render:video
 1. **`sync-outputs-to-public.mjs --require-tts`** — 必须存在 **`$TTS_OUTPUT_DIR/audio.mp3`** 与 **`audio.vtt`**，否则退出（提示先 **`pnpm tts`**）。
 2. 若存在 **`$VIDEO_PUBLIC_DIR/title.json`**，生成临时 **`output/video/render-props.json`** 作为 **`--props`**；否则用默认标题并告警。
 3. **`pnpm exec remotion render Video <output> --codec=h264 --crf=23`**（`<output>` = **`output/video/video.mp4`**）。
-4. 生成封面：**`Cover-Still` → `output/video/cover.png`**，必要时 **ffmpeg → `cover.jpg`**（或从 MP4 抽帧兜底）。
+4. 生成封面：**`Cover-Static` → `output/video/cover.png`**，必要时 **ffmpeg → `cover.jpg`**（或从 MP4 抽帧兜底）。
 
 **输入**
 
@@ -107,7 +107,7 @@ pnpm render:composition -- Video-Vertical
 | 路径 | 内容 |
 |------|------|
 | `output/video/video.mp4` | **任意允许的 composition 都写入同一路径**（覆盖上次） |
-| `output/video/cover.png`、`cover.jpg` | 脚本仍会跑封面逻辑（含 Cover-Still / ffmpeg 兜底） |
+| `output/video/cover.png`、`cover.jpg` | 脚本仍会跑封面逻辑（含 Cover-Static / ffmpeg 兜底） |
 
 **环境变量**
 

@@ -19,3 +19,27 @@ export function writeRenderPropsFromTitle(titlePath, outPath) {
   }
   return false;
 }
+
+/** Props for `PPT-Deck-Cover-Static`: `{ title, subtitle? }` from merged `title.json`. */
+export function writePptDeckCoverPropsFromTitle(titlePath, outPath) {
+  try {
+    const data = JSON.parse(fs.readFileSync(titlePath, "utf8"));
+    const title =
+      typeof data.title === "string" ? data.title.trim() : "";
+    if (!title) return false;
+    const payload = { title };
+    if (typeof data.subtitle === "string" && data.subtitle.trim()) {
+      payload.subtitle = data.subtitle.trim();
+    }
+    fs.mkdirSync(path.dirname(outPath), { recursive: true });
+    fs.writeFileSync(
+      outPath,
+      JSON.stringify(payload, null, 2),
+      "utf8",
+    );
+    return true;
+  } catch {
+    /* ignore */
+  }
+  return false;
+}

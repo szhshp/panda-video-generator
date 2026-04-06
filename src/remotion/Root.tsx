@@ -17,6 +17,7 @@ import { Video } from "./compositions/Video";
 import { VideoVertical } from "./compositions/VideoVertical";
 import { Cover, CoverProps } from "./compositions/Cover";
 import { PPTDeck } from "./compositions/ppt-deck";
+import { PptDeckCover } from "./compositions/ppt-deck-cover";
 import {
   TitleJsonForPptSchema,
   computePptDurationInFrames,
@@ -272,9 +273,9 @@ export const RemotionRoot: React.FC = () => {
           contentTitle: "这里是实际内容的标题",
         } as CoverProps}
       />
-      {/* Still version for cover image generation */}
+      {/* Static frame for cover image generation (remotion still) */}
       <Still
-        id="Cover-Still"
+        id="Cover-Static"
         component={Cover}
         width={VIDEO_WIDTH}
         height={VIDEO_HEIGHT}
@@ -282,6 +283,16 @@ export const RemotionRoot: React.FC = () => {
           title: defaultMyCompProps.title,
           contentTitle: "这里是实际内容的标题",
         } as CoverProps}
+      />
+      <Still
+        id="PPT-Deck-Cover-Static"
+        component={PptDeckCover}
+        width={VIDEO_WIDTH}
+        height={VIDEO_HEIGHT}
+        defaultProps={{
+          title: DEFAULT_SLIDE_DECK.title,
+          subtitle: DEFAULT_SLIDE_DECK.subtitle || undefined,
+        }}
       />
     </>
   );
