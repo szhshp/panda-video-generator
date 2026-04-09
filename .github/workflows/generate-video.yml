@@ -1,12 +1,21 @@
 name: Generate Video
 
 on:
-  workflow_dispatch:  # Manual trigger only (POC phase)
+  push:
+    branches:
+      - 'ci/video-generate'
+  workflow_dispatch:
+    inputs:
+      zhihu_url:
+        description: '知乎问题页 URL（须为 https://www.zhihu.com/question/<id>）'
+        required: true
+        type: string
 
 jobs:
   generate-video:
     runs-on: ubuntu-latest
     timeout-minutes: 90  # Set timeout for video generation (may take 30-60 minutes)
+    # Manual: inputs.zhihu_url. Push (ci/video-generate only): vars.ZHIHU_DEFAULT_URL (https://www.zhihu.com/question/...).
 
     steps:
       - name: Checkout repository
@@ -62,9 +71,11 @@ jobs:
           Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
           echo "DISPLAY=:99" >> $GITHUB_ENV
 
-      - name: Generate video
-        run: pnpm run pipeline:zhihu-video -- https://www.zhihu.com/question/1997750868066447778
+      # Full Zhihu pipeline: spider → TTS → Remotion render (stops after video.mp4; no extra publish step).
+      - name: Zhihu pipeline (through video render)
+        run: pnpm run pipeline:zhihu-video -- "$ZHIHU_URL"
         env:
+          ZHIHU_URL: ${{ github.event_name == 'workflow_dispatch' && inputs.zhihu_url || vars.ZHIHU_DEFAULT_URL }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: 'true'
           PUPPETEER_EXECUTABLE_PATH: '/usr/bin/chromium-browser'
