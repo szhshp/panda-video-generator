@@ -9,6 +9,7 @@ const nextConfig = {
     // Disable TypeScript errors during builds
     ignoreBuildErrors: true,
   },
+  allowedDevOrigins: ['127.0.0.1'],
 };
 
 module.exports = nextConfig;

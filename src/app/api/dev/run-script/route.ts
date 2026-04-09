@@ -1,12 +1,12 @@
-import { spawn } from "child_process";
-import { NextResponse } from "next/server";
-import { z } from "zod";
 import {
   assertScriptAllowed,
   isScriptRunnerEnabled,
   normalizeRunnerArgs,
   pickAllowedPnpmRunEnv,
 } from "../../../../lib/dev-script-runner";
+import { spawn } from "child_process";
+import { z } from "zod";
+import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
 
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       const proc = spawn(pnpmBin, pnpmArgs, {
         cwd,
         env: childEnv,
-        shell: false,
+        shell: true,
       });
 
       const onClientAbort = () => {
