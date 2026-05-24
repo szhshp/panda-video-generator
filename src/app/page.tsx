@@ -162,17 +162,7 @@ export default function Home() {
           一站式全自动化的视频内容生成与发布引擎，支持从网页内容提取、文本转视频到多平台发布的完整工作流。通过
           AI 驱动的文本转语音（TTS）技术和视频渲染引擎，帮助内容创作者快速生成高质量视频并一键发布到多个平台。
         </p>
-        <div className="mt-10 flex flex-wrap justify-center gap-3 px-2 sm:mt-12 sm:gap-4">
-          <Link
-            href="https://github.com/szhshp/panda-video-generator"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#0969da] bg-[#0969da]/10 px-6 py-2.5 text-sm font-bold text-sky-300 shadow-[0_0_32px_-8px_rgba(9,105,218,0.55)] transition-[transform,box-shadow,background-color] hover:scale-[1.03] hover:bg-[#0969da]/20 hover:shadow-[0_0_48px_-6px_rgba(9,105,218,0.65)] sm:min-h-12 sm:px-7 sm:py-3 sm:text-base motion-reduce:hover:scale-100"
-            title="在 GitHub 打开仓库"
-          >
-            <Github size={18} className="shrink-0 sm:size-5" />
-            <span>GitHub</span>
-          </Link>
+        <div className="mt-10 flex flex-col items-center gap-3 px-2 sm:mt-12 sm:gap-4">
           <Link
             href="https://github.com/szhshp/panda-video-generator?tab=readme-ov-file#-%E6%A0%B8%E5%BF%83%E7%89%B9%E6%80%A7"
             target="_blank"
@@ -181,6 +171,28 @@ export default function Home() {
           >
             开始使用
           </Link>
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+            <Link
+              href="https://github.com/szhshp/panda-video-generator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-[#0969da] bg-[#0969da]/10 px-6 py-2.5 text-sm font-bold text-sky-300 shadow-[0_0_32px_-8px_rgba(9,105,218,0.55)] transition-[transform,box-shadow,background-color] hover:scale-[1.03] hover:bg-[#0969da]/20 hover:shadow-[0_0_48px_-6px_rgba(9,105,218,0.65)] sm:min-h-12 sm:px-7 sm:py-3 sm:text-base motion-reduce:hover:scale-100"
+              title="在 GitHub 打开仓库"
+            >
+              <Github size={18} className="shrink-0 sm:size-5" />
+              <span>GitHub</span>
+            </Link>
+            <Link
+              href="https://github.com/szhshp/panda-video-automations-publisher"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-emerald-600 bg-emerald-600/10 px-6 py-2.5 text-sm font-bold text-emerald-300 shadow-[0_0_32px_-8px_rgba(16,185,129,0.55)] transition-[transform,box-shadow,background-color] hover:scale-[1.03] hover:bg-emerald-600/20 hover:shadow-[0_0_48px_-6px_rgba(16,185,129,0.65)] sm:min-h-12 sm:px-7 sm:py-3 sm:text-base motion-reduce:hover:scale-100"
+              title="在 GitHub 打开 Publisher 仓库"
+            >
+              <ExternalLink size={18} className="shrink-0 sm:size-5" />
+              <span>CLI 工具 (可用于自行集成)</span>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -582,6 +594,15 @@ export default function Home() {
             >
               <ExternalLink size={16} className="shrink-0" aria-hidden />
               <span>开发者博客</span>
+            </a>
+            <a
+              href="https://github.com/szhshp/panda-video-automations-publisher"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-zinc-300 hover:text-zinc-50 underline-offset-4 hover:underline"
+            >
+              <Github size={16} className="shrink-0" aria-hidden />
+              <span>CLI 工具</span>
             </a>
           </div>
           <p className="text-xs sm:text-sm text-zinc-500">
