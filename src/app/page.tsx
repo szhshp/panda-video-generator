@@ -181,15 +181,23 @@ export default function Home() {
               </p>
 
               <div className="grow min-h-3" />
-              <a
-                href="https://github.com/szhshp/panda-video-automation-notebooklm"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mx-0 mb-4 mt-1 flex items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-semibold text-zinc-300 transition-all hover:bg-white/[0.12] hover:text-white sm:mx-0 sm:mb-0 sm:mt-3"
-              >
-                <Github size={15} />
-                szhshp/panda-video-automation-notebooklm
-              </a>
+              <div className="flex w-full flex-col gap-2 mt-4 sm:mt-6">
+                <Link
+                  href="/notebooklm"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-purple-500/30 bg-purple-500/10 px-4 py-2 font-mono text-xs font-semibold text-purple-300 transition-all hover:bg-purple-500/20 hover:text-purple-200"
+                >
+                  📖 使用说明 →
+                </Link>
+                <a
+                  href="https://github.com/szhshp/panda-video-automation-notebooklm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.06] px-4 py-2 font-mono text-xs font-semibold text-zinc-300 transition-all hover:bg-white/[0.12] hover:text-white"
+                >
+                  <Github size={15} />
+                  szhshp/panda-video-automation-notebooklm
+                </a>
+              </div>
             </div>
           </div>
 

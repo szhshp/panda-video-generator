@@ -533,16 +533,16 @@ export default function LandingPage() {
               />
             </div>
           </div>
-            <p className="mt-3 text-center text-xs text-zinc-500">
-              <a
-                href="https://www.bilibili.com/video/BV1ZnDcBsEK7/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-amber-400 hover:text-amber-300 hover:underline"
-              >
-                在外部页面观看完整视频
-              </a>
-            </p>
+          <p className="mt-3 text-center text-xs text-zinc-500">
+            <a
+              href="https://www.bilibili.com/video/BV1ZnDcBsEK7/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 hover:text-amber-300 hover:underline"
+            >
+              在外部页面观看完整视频
+            </a>
+          </p>
           <div className={videoFrameClass}>
             <div className={`${videoInnerClass} aspect-video`}>
               <iframe
@@ -556,16 +556,16 @@ export default function LandingPage() {
               />
             </div>
           </div>
-            <p className="mt-3 text-center text-xs text-zinc-500">
-              <a
-                href="https://www.bilibili.com/video/BV19Rw9zwEd4/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-amber-400 hover:text-amber-300 hover:underline"
-              >
-                在外部页面观看完整视频
-              </a>
-            </p>
+          <p className="mt-3 text-center text-xs text-zinc-500">
+            <a
+              href="https://www.bilibili.com/video/BV19Rw9zwEd4/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-amber-400 hover:text-amber-300 hover:underline"
+            >
+              在外部页面观看完整视频
+            </a>
+          </p>
         </div>
       </section>
 
