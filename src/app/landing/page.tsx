@@ -169,8 +169,8 @@ export default function LandingPage() {
         </p>
         <h1 className="mx-auto max-w-4xl min-w-0 px-1 font-mono text-3xl font-bold leading-[1.15] tracking-tight break-words sm:px-4 sm:text-4xl sm:leading-[1.12] md:text-5xl lg:text-6xl">
           <span className="text-amber-400">Panda</span>
-          <span className="text-zinc-50">Video</span>
-          <span className="text-zinc-200">Generator</span>
+          <span className="text-zinc-400">Video</span>
+          <span className="text-zinc-50">Generator</span>
         </h1>
         <p className="mt-4 font-mono text-lg font-medium text-zinc-400 sm:text-xl md:text-2xl">
           熊猫视频自动化引擎

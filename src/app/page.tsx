@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Compass, Terminal, Github, Podcast, Music, Lightbulb } from "lucide-react";
+import { Github, Lightbulb } from "lucide-react";
 import Footer from "../components/Footer";
 
 const mediaFiles = [
@@ -60,8 +60,20 @@ export default function Home() {
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#Agent</span>
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#Web</span>
               </div>
-              <div className="mb-5 inline-flex size-16 items-center justify-center rounded-xl bg-amber-500/10 text-amber-300/90 ring-1 ring-amber-500/20 sm:size-20">
-                <Compass className="size-8 sm:size-10" strokeWidth={1.5} />
+              <div className="relative my-3">
+                <div
+                  className="pointer-events-none absolute inset-[-28%] rounded-[2rem] bg-gradient-to-tr from-amber-500/35 via-cyan-500/22 to-fuchsia-500/28 blur-3xl motion-reduce:opacity-50"
+                  aria-hidden
+                />
+                <div className="relative rounded-2xl bg-zinc-100 p-3 shadow-md shadow-black/40 ring-1 ring-zinc-300/90 motion-safe:animate-hero-float sm:p-4 motion-reduce:animate-none">
+                  <Image
+                    src="/logo/logo.png"
+                    alt="Panda Video Generator Logo"
+                    width={200}
+                    height={200}
+                    className="size-[5.25rem] object-contain sm:size-[8.25rem] md:size-[9rem]"
+                  />
+                </div>
               </div>
 
               <h2 className="mb-1 font-mono text-xl font-bold tracking-tight text-zinc-50 sm:text-2xl md:text-3xl">
@@ -110,8 +122,20 @@ export default function Home() {
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#浏览器自动化</span>
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#支持多自媒体平台</span>
               </div>
-              <div className="mb-5 inline-flex size-16 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300/90 ring-1 ring-emerald-500/20 sm:size-20">
-                <Terminal className="size-8 sm:size-10" strokeWidth={1.5} />
+              <div className="relative my-3">
+                <div
+                  className="pointer-events-none absolute inset-[-28%] rounded-[2rem] bg-gradient-to-tr from-amber-500/35 via-cyan-500/22 to-fuchsia-500/28 blur-3xl motion-reduce:opacity-50"
+                  aria-hidden
+                />
+                <div className="relative rounded-2xl bg-zinc-100 p-3 shadow-md shadow-black/40 ring-1 ring-zinc-300/90 motion-safe:animate-hero-float sm:p-4 motion-reduce:animate-none">
+                  <Image
+                    src="/logo/pva-cli.png"
+                    alt="Panda Video Automation Publisher Logo"
+                    width={200}
+                    height={200}
+                    className="size-[5.25rem] object-contain sm:size-[8.25rem] md:size-[9rem]"
+                  />
+                </div>
               </div>
 
               <h2 className="mb-1 font-mono text-xl font-bold tracking-tight text-zinc-50 sm:text-2xl md:text-3xl">
@@ -157,8 +181,20 @@ export default function Home() {
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#PPT</span>
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#视频讲解</span>
               </div>
-              <div className="mb-5 inline-flex size-16 items-center justify-center rounded-xl bg-purple-500/10 text-purple-300/90 ring-1 ring-purple-500/20 sm:size-20">
-                <Podcast className="size-8 sm:size-10" strokeWidth={1.5} />
+              <div className="relative my-3">
+                <div
+                  className="pointer-events-none absolute inset-[-28%] rounded-[2rem] bg-gradient-to-tr from-amber-500/35 via-cyan-500/22 to-fuchsia-500/28 blur-3xl motion-reduce:opacity-50"
+                  aria-hidden
+                />
+                <div className="relative rounded-2xl bg-zinc-100 p-3 shadow-md shadow-black/40 ring-1 ring-zinc-300/90 motion-safe:animate-hero-float sm:p-4 motion-reduce:animate-none">
+                  <Image
+                    src="/logo/pva-notebooklm.png"
+                    alt="Panda Video Automation NotebookLM Logo"
+                    width={200}
+                    height={200}
+                    className="size-[5.25rem] object-contain sm:size-[8.25rem] md:size-[9rem]"
+                  />
+                </div>
               </div>
 
               <h2 className="mb-1 font-mono text-xl font-bold tracking-tight text-zinc-50 sm:text-2xl md:text-3xl">
@@ -214,8 +250,20 @@ export default function Home() {
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#Suno</span>
                 <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-zinc-300">#生成式</span>
               </div>
-              <div className="mb-5 inline-flex size-16 items-center justify-center rounded-xl bg-zinc-500/10 text-zinc-500/90 ring-1 ring-zinc-500/15 sm:size-20">
-                <Music className="size-8 sm:size-10" strokeWidth={1.5} />
+              <div className="relative my-3">
+                <div
+                  className="pointer-events-none absolute inset-[-28%] rounded-[2rem] bg-gradient-to-tr from-zinc-500/25 via-zinc-400/10 to-zinc-500/25 blur-3xl motion-reduce:opacity-50"
+                  aria-hidden
+                />
+                <div className="relative rounded-2xl bg-zinc-600/30 p-3 shadow-md shadow-black/40 ring-1 ring-zinc-500/30 motion-safe:animate-hero-float sm:p-4 motion-reduce:animate-none">
+                  <Image
+                    src="/logo/pva-suno-gray.png"
+                    alt="Panda Video Automation Suno Logo"
+                    width={200}
+                    height={200}
+                    className="size-[5.25rem] object-contain sm:size-[8.25rem] md:size-[9rem]"
+                  />
+                </div>
               </div>
 
               <h2 className="mb-1 font-mono text-xl font-bold tracking-tight text-zinc-50 sm:text-2xl md:text-3xl">

@@ -135,7 +135,7 @@
 - **V1.5.0** · 2026-05-24
   - 浏览器自动化底层切换为 [`@panda-video-automation/pva`](https://github.com/szhshp/panda-video-automations-publisher)，统一登录/上传命令为 `pva` CLI
   - 移除项目对 `playwright` / `@playwright/test` 的直接依赖
-  - 移除对小红书的支持 (小红书 ~~这平台的逼事特别多~~ 反爬虫过于严格, 可能导致账号功能限制) 
+  - 移除对小红书的支持 (小红书 ~~这平台逼事特别多 TMD 威胁我用自动化就封号, 封号就封号赶紧倒闭吧~~ 上传流程过于严格, 可能导致账号功能限制) 
 - **V1.4.1** · 2026-04-12
   <a id="changelog-github-actions"></a>
   - 经过网友提醒, Github Actions 云端渲染视频可能存在违反 Action 服务条款的风险, 所以移除了 Github Actions 的示例, 但是你依然可以从 [4953884](https://github.com/szhshp/panda-video-generator/commit/4953884e978ccc96f8d1a7cebb1b7f88754d2de7) 这个 commit 中找到 Github Actions 的示例, 其中包含除了`自动化发布`之外的完整功能.
